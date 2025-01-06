@@ -54,17 +54,44 @@ function build-command {
 }
 
 function run-p4app {
+  # APP_TO_RUN=/tmp/app.tar.gz
+  # docker create --privileged --interactive  -i --tty --rm \
+  #           --name $P4APP_NAME \
+  #           -v $1:$APP_TO_RUN \
+  #           -e DISPLAY=$DISPLAY \
+  #           -v $P4APP_LOGDIR:/tmp/p4app_logs \
+  #            $P4APP_CONTAINER_ARGS \
+  #            $P4APP_IMAGE $APP_TO_RUN "${@:2}"
+  # # add docker macvlan interfaces to docker container  
+  # # allowing for data plane traffic to be send from mininet to external network
+  # # detects existance of macvlan docker interface named `macvlan_int_0`
+  # echo "Searching for docker macvlan interface $EXTERNAL_INTERFACE_0"
+  # if docker network ls -f driver=macvlan | grep -q $EXTERNAL_INTERFACE_0; then
+  #   echo "Adding $EXTERNAL_INTERFACE_0 to docker container $P4APP_NAME"
+  #   docker network connect $EXTERNAL_INTERFACE_0 $P4APP_NAME 
+  # else
+  #   echo "Interface $EXTERNAL_INTERFACE_0 not found"
+  # fi
+  # docker start --interactive  $P4APP_NAME 
   APP_TO_RUN=/tmp/app.tar.gz
-  docker create --privileged --interactive  -i --tty --rm \
+  # 构建 Docker 命令
+  docker_command="docker create --privileged --interactive -i --tty --rm \
             --name $P4APP_NAME \
             -v $1:$APP_TO_RUN \
             -e DISPLAY=$DISPLAY \
             -v $P4APP_LOGDIR:/tmp/p4app_logs \
              $P4APP_CONTAINER_ARGS \
-             $P4APP_IMAGE $APP_TO_RUN "${@:2}"
-  # add docker macvlan interfaces to docker container  
-  # allowing for data plane traffic to be send from mininet to external network
-  # detects existance of macvlan docker interface named `macvlan_int_0`
+             $P4APP_IMAGE $APP_TO_RUN ${@:2}"
+  
+  # 输出 Docker 命令
+  echo "Running Docker command:"
+  echo "$docker_command"
+
+  # 执行 Docker 命令
+  eval "$docker_command"
+  rc=$?
+
+  # 添加 docker macvlan 接口
   echo "Searching for docker macvlan interface $EXTERNAL_INTERFACE_0"
   if docker network ls -f driver=macvlan | grep -q $EXTERNAL_INTERFACE_0; then
     echo "Adding $EXTERNAL_INTERFACE_0 to docker container $P4APP_NAME"
@@ -72,7 +99,12 @@ function run-p4app {
   else
     echo "Interface $EXTERNAL_INTERFACE_0 not found"
   fi
+
+  # 启动 Docker 容器
+  echo "Starting Docker container $P4APP_NAME"
   docker start --interactive  $P4APP_NAME 
+
+  return $rc
 }
 
 function run-command {
@@ -82,6 +114,7 @@ function run-command {
     # container.
     PACKAGE_DIR=$(normalize_path "$1")
     APP_FILE=$(mktemp /tmp/p4app.tar.gz.XXXXXX)
+    echo $APP_FILE
     tar -czf "$APP_FILE" -C "$PACKAGE_DIR" .
     run-p4app "$APP_FILE" "${@:2}"
     rc=$?

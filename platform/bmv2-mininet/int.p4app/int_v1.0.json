@@ -1,5 +1,5 @@
 {
-	"program": "p4src/int_v1.0/int.p4",
+	"program": "p4src/int.p4",
 	"language": "p4-16",
 	"targets": {
 		"custom": {
