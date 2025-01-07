@@ -22,7 +22,7 @@
 // register to store seq
 register<bit<16>> (1) hdr_seq_num_register;
 
-control Int_source(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+control Int_source(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
     // Configure parameters of INT source node
     // max_hop - how many INT nodes can add their INT node metadata
     // hope_metadata_len - how INT metadata words are added by a single INT node
@@ -65,8 +65,8 @@ control Int_source(inout headers hdr, inout metadata meta, inout standard_metada
         key = {
             hdr.ipv4.src_addr     : ternary;
             hdr.ipv4.dst_addr     : ternary;
-            meta.layer34_metadata.l4_src: ternary;
-            meta.layer34_metadata.l4_dst: ternary;
+            meta.l4_src_port      : ternary;
+            meta.l4_dst_port      : ternary;
         }
         size = 127;
     }

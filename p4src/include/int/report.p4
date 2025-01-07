@@ -24,7 +24,7 @@
 // register to store seq_num
 register<bit<32>> (1) report_seq_num_register;
 
-control Int_report(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+control Int_report(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
         bit<32> seq_num_value = 0;
 
         // INT Report structure
@@ -58,7 +58,7 @@ control Int_report(inout headers hdr, inout metadata meta, inout standard_metada
             } else {
                 hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 8;
             }
-            hdr.report_ipv4.id = 0;
+            hdr.report_ipv4.identification = 0;
             hdr.report_ipv4.flags = 0;
             hdr.report_ipv4.frag_offset = 0;
             hdr.report_ipv4.ttl = 64;

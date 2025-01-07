@@ -18,73 +18,136 @@
  * limitations under the License.
  */
 
-error
-{
-	INTShimLenTooShort,
-	INTVersionNotSupported
-}
+#include "headers.p4"
 
-parser ParserImpl(packet_in packet, out headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
     state start {
        transition parse_ethernet;
     }
     state parse_ethernet {
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.ether_type) {
-            16w0x800: parse_ipv4;
+            ETHERTYPE_IPV4: parse_ipv4;
+            ETHERTYPE_IPV6: parse_ipv6;
+            ETHERTYPE_ID: parse_id;
+            ETHERTYPE_GEO: parse_geo;
+            ETHERTYPE_MF: parse_mf;
+            ETHERTYPE_NDN: parse_ndn;
+            ETHERTYPE_FLEXIP: parse_flexip;
             default: accept;
         }
     }
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        meta.layer34_metadata.ip_src = hdr.ipv4.src_addr;
-        meta.layer34_metadata.ip_dst = hdr.ipv4.dst_addr;
-        meta.layer34_metadata.ip_ver = 8w4;
-        meta.layer34_metadata.dscp = hdr.ipv4.dscp;
-
-        #ifdef TOFINO
-        ipv4_checksum.add(hdr.ipv4);
-        /*// Output of verify is 0 or 1*/
-        /*// If it is 1, there is checksum error*/
-        ipv4_checksum.verify();
-        #endif
+        meta.l4_dscp = hdr.ipv4.dscp;
         transition select(hdr.ipv4.protocol) {
-            8w0x11: parse_udp;
-            8w0x6: parse_tcp;
+            IP_PROTO_TCP: parse_tcp;
+            IP_PROTO_UDP: parse_udp;
             default: accept;
         }
     }
+
+    state parse_ipv6 {
+        packet.extract(hdr.ipv6);
+        transition select(hdr.ipv6.next_hdr) {
+            IP_PROTO_TCP:    parse_tcp;
+            IP_PROTO_UDP:    parse_udp;
+            default: accept;
+        }
+    }
+
+    state parse_flexip {
+        packet.extract(hdr.flexip);
+        transition accept;
+    }
+
+    state parse_id {
+        packet.extract(hdr.id);
+        transition accept;
+    }
+
+    state parse_mf {
+        packet.extract(hdr.mf);
+        transition accept;
+    }
+
+    state parse_geo {
+        packet.extract(hdr.geo);
+        transition select(hdr.geo.ht) { //
+            TYPE_geo_beacon: parse_beacon; //0x01
+            TYPE_geo_gbc: parse_gbc; //0x04
+            default: accept;
+        }
+    }
+
+    state parse_beacon{
+        packet.extract(hdr.beacon);
+        transition accept;
+    }
+
+    state parse_gbc{
+        packet.extract(hdr.gbc);
+        transition accept;
+    }
+
+    state parse_ndn {
+        packet.extract(hdr.ndn.ndn_prefix);
+        transition parse_ndn_name;
+    }
+
+    state parse_ndn_name {
+        packet.extract(hdr.ndn.name_tlv.ndn_tlv_prefix);
+        meta.name_tlv_length = hdr.ndn.name_tlv.ndn_tlv_prefix.length;
+        transition parse_ndn_name_components;
+    }
+
+    state parse_ndn_name_components {
+        packet.extract(hdr.ndn.name_tlv.components.next);
+        transition select(hdr.ndn.name_tlv.components.last.end) {
+            0: parse_ndn_name_components;
+            1: parse_ndn_metainfo;
+        }
+    }
+
+    state parse_ndn_metainfo {
+        packet.extract(hdr.ndn.metaInfo_tlv.ndn_tlv_prefix);
+        packet.extract(hdr.ndn.metaInfo_tlv.content_type_tlv);
+        packet.extract(hdr.ndn.metaInfo_tlv.freshness_period_tlv);
+        packet.extract(hdr.ndn.metaInfo_tlv.final_block_id_tlv);
+        transition parse_ndn_content;
+    }
+
+    state parse_ndn_content {
+        packet.extract(hdr.ndn.content_tlv);
+        transition accept;
+    }
+
     state parse_tcp {
         packet.extract(hdr.tcp);
-        meta.layer34_metadata.l4_src = hdr.tcp.src_port;
-        meta.layer34_metadata.l4_dst = hdr.tcp.dst_port;
-        meta.layer34_metadata.l4_proto = 8w0x6;
-        transition select(meta.layer34_metadata.dscp) {
+        meta.l4_src_port = hdr.tcp.src_port;
+        meta.l4_dst_port = hdr.tcp.dst_port;
+        transition select(meta.l4_dscp) {
             IPv4_DSCP_INT: parse_int;
             default: accept;
         }
     }
     state parse_udp {
         packet.extract(hdr.udp);
-        meta.layer34_metadata.l4_src = hdr.udp.src_port;
-        meta.layer34_metadata.l4_dst = hdr.udp.dst_port;
-        meta.layer34_metadata.l4_proto = 8w0x11;
-        transition select(meta.layer34_metadata.dscp, hdr.udp.dst_port) {
+        meta.l4_src_port = hdr.udp.src_port;
+        meta.l4_dst_port = hdr.udp.dst_port;
+        transition select(meta.l4_dscp, hdr.udp.dst_port){
             (6w0x20 &&& 6w0x3f, 16w0x0 &&& 16w0x0): parse_int;
             default: accept;
         }
     }
     state parse_int {
         packet.extract(hdr.int_shim);
-        /*verify(hdr.int_shim.len >= 3, error.INTShimLenTooShort);*/
         packet.extract(hdr.int_header);
-        // DAMU: warning (from TOFINO): Parser "verify" is currently unsupported
-        /*verify(hdr.int_header.ver == INT_VERSION, error.INTVersionNotSupported);*/
         transition accept;
     }
 }
 
-control DeparserImpl(packet_out packet, in headers hdr) {
+control DeparserImpl(packet_out packet, in headers_t hdr) {
     apply {
         // raport headers
         packet.emit(hdr.report_ethernet);
@@ -94,9 +157,19 @@ control DeparserImpl(packet_out packet, in headers hdr) {
         
         // original headers
         packet.emit(hdr.ethernet);
+        packet.emit(hdr.ndn);
+	    packet.emit(hdr.mf);
+        packet.emit(hdr.id);
+        packet.emit(hdr.flexip);
+        packet.emit(hdr.geo);
+	    packet.emit(hdr.gbc);
+	    packet.emit(hdr.beacon);
+        packet.emit(hdr.ipv6);
         packet.emit(hdr.ipv4);
-        packet.emit(hdr.udp);
         packet.emit(hdr.tcp);
+        packet.emit(hdr.udp);
+        packet.emit(hdr.icmpv6);
+        packet.emit(hdr.ndp);
         
         // INT headers
         packet.emit(hdr.int_shim);
@@ -114,12 +187,12 @@ control DeparserImpl(packet_out packet, in headers hdr) {
     }
 }
 
-control verifyChecksum(inout headers hdr, inout metadata meta) {
+control verifyChecksum(inout headers_t hdr, inout local_metadata_t meta) {
     apply {
     }
 }
 
-control computeChecksum(inout headers hdr, inout metadata meta) {
+control computeChecksum(inout headers_t hdr, inout local_metadata_t meta) {
     apply {
         update_checksum(
             hdr.ipv4.isValid(),
@@ -129,7 +202,7 @@ control computeChecksum(inout headers hdr, inout metadata meta) {
                 hdr.ipv4.dscp,
                 hdr.ipv4.ecn,
                 hdr.ipv4.total_len,
-                hdr.ipv4.id,
+                hdr.ipv4.identification,
                 hdr.ipv4.flags,
                 hdr.ipv4.frag_offset,
                 hdr.ipv4.ttl,
@@ -149,7 +222,7 @@ control computeChecksum(inout headers hdr, inout metadata meta) {
                 hdr.report_ipv4.dscp,
                 hdr.report_ipv4.ecn,
                 hdr.report_ipv4.total_len,
-                hdr.report_ipv4.id,
+                hdr.report_ipv4.identification,
                 hdr.report_ipv4.flags,
                 hdr.report_ipv4.frag_offset,
                 hdr.report_ipv4.ttl,

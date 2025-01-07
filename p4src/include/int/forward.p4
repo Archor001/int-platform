@@ -18,7 +18,7 @@
  * limitations under the License.
  */
  
-control Forward(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+control Forward(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
     action send_to_cpu(bit<9> port) {
         standard_metadata.egress_spec = port;
     }

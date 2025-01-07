@@ -22,11 +22,11 @@
 
 const bit<32> INT_REPORT_MIRROR_SESSION_ID = 1;   // mirror session specyfing egress_port for cloned INT report packets, defined by switch CLI command   
 
-control Int_sink_config(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+control Int_sink_config(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
     action configure_sink(bit<16> sink_reporting_port) {
         meta.int_metadata.remove_int = 1;   // indicate that INT headers must be removed in egress
         meta.int_metadata.sink_reporting_port = (bit<16>)sink_reporting_port; 
-        clone3<metadata>(CloneType.I2E, INT_REPORT_MIRROR_SESSION_ID, meta);
+        clone3<local_metadata_t>(CloneType.I2E, INT_REPORT_MIRROR_SESSION_ID, meta);
     }
 
     //table used to activate INT sink for particular egress port of the switch
@@ -49,7 +49,7 @@ control Int_sink_config(inout headers hdr, inout metadata meta, inout standard_m
     }
 }
 
-control Int_sink(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
     action remove_sink_header() {
          // restore original headers
         hdr.ipv4.dscp = hdr.int_shim.dscp;

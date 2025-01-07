@@ -31,7 +31,7 @@
 #include "include/int/port_forward.p4"
 
 
-control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_t ig_intr_md) {
+control ingress(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t ig_intr_md) {
 	apply {
 		if (!hdr.udp.isValid() && !hdr.tcp.isValid())
 			exit;
@@ -50,7 +50,7 @@ control ingress(inout headers hdr, inout metadata meta, inout standard_metadata_
 	}
 }
 
-control egress(inout headers hdr, inout metadata meta, inout standard_metadata_t eg_intr_md) {
+control egress(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t eg_intr_md) {
 	apply {
 		Int_transit.apply(hdr, meta, eg_intr_md);
 		// in case of the INT sink port remove INT headers

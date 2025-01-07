@@ -19,16 +19,15 @@
  */
 
 
-control Int_transit(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
         // Configure parameters of INT transit node:
         // switch_id which is used within INT node metadata
         // l3_mtu is curently not used but should allow to detect condition if adding new INT metadata will exceed allowed MTU packet size
 
-        action configure_transit(bit<32> switch_id, bit<16> l3_mtu) {
+        action configure_transit(bit<32> switch_id) {
             meta.int_metadata.switch_id = switch_id;
             meta.int_metadata.insert_byte_cnt = 0;
             meta.int_metadata.int_hdr_word_len = 0;
-            meta.layer34_metadata.l3_mtu = l3_mtu;
         }
 
         // Table used to configure a switch as a INT transit
@@ -48,9 +47,8 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
         }
         action int_set_header_1() {
             hdr.int_port_ids.setValid();
-            //hdr.int_port_ids.ingress_port_id = (bit<16>)standard_metadata.ingress_port;
-            hdr.int_port_ids.ingress_port_id = meta.int_metadata.ingress_port;
-            hdr.int_port_ids.egress_port_id = (bit<16>)standard_metadata.egress_port;
+            hdr.int_port_ids.ingress_port_id = (bit<32>)meta.int_metadata.ingress_port;
+            hdr.int_port_ids.egress_port_id = (bit<32>)standard_metadata.egress_port;
         }
         action int_set_header_2() {
             hdr.int_hop_latency.setValid();
@@ -64,12 +62,12 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
         action int_set_header_4() {
             hdr.int_ingress_tstamp.setValid();
             bit<64> _timestamp = (bit<64>)meta.int_metadata.ingress_tstamp;  
-            hdr.int_ingress_tstamp.ingress_tstamp = hdr.int_ingress_tstamp.ingress_tstamp + 1000 * _timestamp;
+            hdr.int_ingress_tstamp.ingress_tstamp = hdr.int_ingress_tstamp.ingress_tstamp + (bit<32>)(1000 * _timestamp);
         }
         action int_set_header_5() {
             hdr.int_egress_tstamp.setValid();
             bit<64> _timestamp = (bit<64>)standard_metadata.egress_global_timestamp;
-            hdr.int_egress_tstamp.egress_tstamp = hdr.int_egress_tstamp.egress_tstamp + 1000 * _timestamp;
+            hdr.int_egress_tstamp.egress_tstamp = hdr.int_egress_tstamp.egress_tstamp + (bit<32>)(1000 * _timestamp);
         }
         action int_set_header_6() {
             hdr.int_level2_port_ids.setValid();

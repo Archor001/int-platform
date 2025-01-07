@@ -71,7 +71,7 @@ const MeterColor MeterColor_RED = 8w2;
 
 // int
 const bit<6>  IPv4_DSCP_INT = 0x20;  // indicates an INT header in the packet
-const bit<8>  INT_TYPE_HOP_BY_HOP = 1;   // HOP_BY_HOP的INT类型是1
+const bit<8>  INT_TYPE_HOP_BY_HOP = 1;   // HOP_BY_HOP INT type 
 const bit<16> INT_SHIM_HEADER_LEN_BYTES = 4;
 const bit<16> INT_HEADER_LEN_BYTES = 8;
 const bit<16> INT_ALL_HEADER_LEN_BYTES = INT_SHIM_HEADER_LEN_BYTES + INT_HEADER_LEN_BYTES;
