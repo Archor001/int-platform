@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#ifndef __PARSERS__
 #define __PARSERS__
 
 #include "headers.p4"
@@ -217,4 +216,12 @@ control deparser(packet_out packet, in headers_t hdr) {
     }
 }
 
-#endif
+control verifyChecksum(inout headers_t hdr, inout local_metadata_t meta) {
+    apply {
+    }
+}
+
+control computeChecksum(inout headers_t hdr, inout local_metadata_t meta) {
+    apply {
+    }
+}

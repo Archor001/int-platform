@@ -20,13 +20,6 @@
 #include "./include/headers.p4"
 #include "./include/defines.p4"
 #include "./include/parsers.p4"
-#include "./include/control/actions.p4"
-#include "./include/control/port_counters.p4"
-#include "./include/control/port_meters.p4"
-#include "./include/control/checksums.p4"
-#include "./include/control/packet_io.p4"
-#include "./include/control/table0.p4"
-#include "./include/control/host_meter_table.p4"
 #include "./include/int/source.p4"
 #include "./include/int/transit.p4"
 #include "./include/int/sink.p4"
@@ -380,12 +373,6 @@ control ingress(inout headers_t hdr,
             exit;
         }
         Int_source.apply(hdr, local_metadata, standard_metadata);
-
-        port_counters_ingress.apply(hdr, standard_metadata);
-        port_meters_ingress.apply(hdr, standard_metadata);
-        packetio_ingress.apply(hdr, standard_metadata);
-        table0_control.apply(hdr, local_metadata, standard_metadata);
-        host_meter_control.apply(hdr, local_metadata, standard_metadata);
         
         if (hdr.packet_out.isValid()) {
             // Set the egress port to that found in the packet-out metadata...
@@ -435,9 +422,6 @@ control egress(inout headers_t hdr,
 
     apply {
         Int_transit.apply(hdr, local_metadata, standard_metadata);
-        port_counters_egress.apply(hdr, standard_metadata);
-        port_meters_egress.apply(hdr, standard_metadata);
-        packetio_egress.apply(hdr, standard_metadata);
         Int_sink.apply(hdr, local_metadata, standard_metadata);
     }
 }
@@ -447,8 +431,8 @@ control egress(inout headers_t hdr,
 //------------------------------------------------------------------------------
 
 V1Switch(parser_impl(),
-         verify_checksum_control(),
+         verifyChecksum(),
          ingress(),
          egress(),
-         compute_checksum_control(),
+         computeChecksum(),
          deparser()) main;

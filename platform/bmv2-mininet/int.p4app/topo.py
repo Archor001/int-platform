@@ -66,7 +66,7 @@ def main():
                   autoStaticArp=True)
 
     create_int_collection_network(net.switches, influxdb=args.influx)
-    create_link_to_external_interface(switch=net.switches[1], external_interface_name='eth1')
+    # create_link_to_external_interface(switch=net.switches[1], external_interface_name='eth1')
 
     net.start()
     

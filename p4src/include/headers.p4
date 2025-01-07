@@ -267,8 +267,8 @@ header int_switch_id_t {
 }
 
 header int_level1_port_ids_t {
-    bit<16> ingress_port_id;
-    bit<16> egress_port_id;
+    bit<32> ingress_port_id;
+    bit<32> egress_port_id;
 }
 
 header int_hop_latency_t {

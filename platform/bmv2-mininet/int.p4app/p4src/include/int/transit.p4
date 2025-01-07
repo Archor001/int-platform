@@ -47,8 +47,8 @@ control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout stan
         action int_set_header_1() {
             hdr.int_level1_port_ids.setValid();
             //hdr.int_level1_port_ids.ingress_port_id = (bit<16>)standard_metadata.ingress_port;
-            hdr.int_level1_port_ids.ingress_port_id = meta.int_metadata.ingress_port;
-            hdr.int_level1_port_ids.egress_port_id = (bit<16>)standard_metadata.egress_port;
+            hdr.int_level1_port_ids.ingress_port_id = (bit<32>)meta.int_metadata.ingress_port;
+            hdr.int_level1_port_ids.egress_port_id = (bit<32>)standard_metadata.egress_port;
         }
         action int_set_header_2() {
             hdr.int_hop_latency.setValid();
