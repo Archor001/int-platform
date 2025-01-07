@@ -17,7 +17,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-from scapy.all import Ether, IP, sendp, get_if_hwaddr, get_if_list, TCP, Raw, UDP
+from scapy.all import Ether, IP, sendp, get_if_hwaddr, get_if_list, TCP, Raw, UDP, wrpcap
 from scapy.config import conf
 import sys
 from time import sleep, time
@@ -39,17 +39,21 @@ s = conf.L2socket(iface=interface)
 p = Ether(dst=dst_mac,src=src_mac)/IP(frag=0,dst=dst_ip,src=src_ip)
 p = p/UDP(sport=sport, dport=dport)/Raw(load=data)
 
+packets = []  # List to store all packets
+
 if __name__ == "__main__":
     pkt_cnt = 0
     last_sec = time()
-    while True:
-        #start = time()
-        s.send(p)
-        #print("Send time is %s", time()-start)
-        #sleep(0.1)
-        
-        pkt_cnt += 1
-        if time()-last_sec > 1.0:
-            print("Pkt/s", pkt_cnt)
-            pkt_cnt = 0
-            last_sec = time()
+    try:
+        while True:
+            s.send(p)
+            packets.append(p)  # Append the packet to the list
+            pkt_cnt += 1
+            if time()-last_sec > 1.0:
+                print("Pkt/s", pkt_cnt)
+                pkt_cnt = 0
+                last_sec = time()
+    except KeyboardInterrupt:
+        print("Writing packets to pcap file...")
+        wrpcap('h1_h2_udp_flow.pcap', packets)  # Write all packets to pcap file
+        print("Done.")

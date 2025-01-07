@@ -10,7 +10,7 @@ import io
 from influxdb import InfluxDBClient
 
 log_format = "[%(asctime)s] [%(levelname)s] - %(message)s"
-logging.basicConfig(level=logging.ERROR, format=log_format, filename="/tmp/p4app_logs/int_collector.log")
+logging.basicConfig(level=logging.INFO, format=log_format, filename="/tmp/p4app_logs/int_collector.log")
 logger = logging.getLogger('int_collector')
 
 
@@ -435,6 +435,7 @@ def influx_client(args):
     dbname = args.database
 
     client = InfluxDBClient(host, port, user, password, dbname)
+    logger.info("InfluxDBClient(host:%s, port:%s, user:%s, password:%s, dbname:%s):", host, port, user, password, dbname)
     logger.info("Influx client ping response: %s" % client.ping())
     return client
     

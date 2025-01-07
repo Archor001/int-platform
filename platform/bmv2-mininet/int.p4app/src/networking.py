@@ -73,7 +73,7 @@ def start_int_collector(influxdb):
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
     )
     
-    collector_cmd = 'ip netns exec ns_int python3 /tmp/utils/int_collector_influx.py -i 6000 -H 192.168.0.1:8086 -d 0 &> /dev/null'
+    collector_cmd = 'ip netns exec ns_int python3 /tmp/utils/int_collector_influx.py -i 6000 -H 218.199.84.170:8086 -d 0 &> /dev/null'
     print(collector_cmd)
     os.system(collector_cmd)
     
@@ -87,6 +87,10 @@ def create_internet_connectivity():
     
     _quietRun( 'ifconfig internet_cont %s/24' % "192.168.0.1")
     _quietRun( 'ip link set dev internet_cont up')
+
+    # use NAT to enable ns_int visit 218.199.84.170
+    _quietRun( 'iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE' )
+    quietRunNs( 'ip route add default via 192.168.0.1 dev internet_coll' )
  
  
 def create_int_collector_link(bridge_name):

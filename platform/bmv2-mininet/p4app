@@ -19,6 +19,7 @@ P4APP_IMAGE=${P4APP_IMAGE:-jaxa/p4app-epoch}
 P4APP_CONTAINER_ARGS=${P4APP_CONTAINER_ARGS:-""}
 
 P4APP_NAME="int"
+PLATFORM_DIR="/home/onos/Desktop/int-platform/platform/bmv2-mininet/"
 EXTERNAL_INTERFACE_0="macvlan_int_0"
 
 myrealpath() {
@@ -80,6 +81,7 @@ function run-p4app {
             -v $1:$APP_TO_RUN \
             -e DISPLAY=$DISPLAY \
             -v $P4APP_LOGDIR:/tmp/p4app_logs \
+            -v $PLATFORM_DIR:/tmp/bmv2-mininet \
              $P4APP_CONTAINER_ARGS \
              $P4APP_IMAGE $APP_TO_RUN ${@:2}"
   
