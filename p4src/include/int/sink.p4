@@ -22,11 +22,21 @@
 
 const bit<32> INT_REPORT_MIRROR_SESSION_ID = 1;   // mirror session specyfing egress_port for cloned INT report packets, defined by switch CLI command   
 
-control Int_sink_config(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
+#ifdef BMV2
+control Int_sink_config(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+#elif TOFINO
+control Int_sink_config(inout headers hdr, inout metadata meta, inout ingress_intrinsic_metadata_for_tm_t standard_metadata) {
+#endif
     action configure_sink(bit<16> sink_reporting_port) {
         meta.int_metadata.remove_int = 1;   // indicate that INT headers must be removed in egress
         meta.int_metadata.sink_reporting_port = (bit<16>)sink_reporting_port; 
-        clone3<local_metadata_t>(CloneType.I2E, INT_REPORT_MIRROR_SESSION_ID, meta);
+#ifdef BMV2
+        clone3<metadata>(CloneType.I2E, INT_REPORT_MIRROR_SESSION_ID, meta);
+#elif TOFINO
+        // To use mirror
+        meta.mirror_md.mirror_type = 1;
+        meta.int_metadata.session_ID = (bit<10>)INT_REPORT_MIRROR_SESSION_ID;
+#endif
     }
 
     //table used to activate INT sink for particular egress port of the switch
@@ -35,7 +45,11 @@ control Int_sink_config(inout headers_t hdr, inout local_metadata_t meta, inout 
             configure_sink;
         }
         key = {
+#ifdef BMV2
             standard_metadata.egress_spec: exact;
+#elif TOFINO
+            standard_metadata.ucast_egress_port: exact;
+#endif
         }
         size = 255;
     }
@@ -49,19 +63,31 @@ control Int_sink_config(inout headers_t hdr, inout local_metadata_t meta, inout 
     }
 }
 
-control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
+#ifdef BMV2
+control Int_sink(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
+#elif TOFINO
+control Int_sink(inout headers hdr, inout metadata meta, in egress_intrinsic_metadata_t standard_metadata, in egress_intrinsic_metadata_from_parser_t imp) {
+#endif
+
     action remove_sink_header() {
          // restore original headers
         hdr.ipv4.dscp = hdr.int_shim.dscp;
+#ifdef BMV2
         bit<16> len_bytes = ((bit<16>)hdr.int_shim.len) << 2;
-        hdr.ipv4.total_len = hdr.ipv4.total_len - len_bytes;
+        hdr.ipv4.totalLen = hdr.ipv4.totalLen - len_bytes;
         if (hdr.udp.isValid()) {
             hdr.udp.len = hdr.udp.len - len_bytes;
         }
+#elif TOFINO
+        // For Tofino we need to pre-compute this in the parser
+        // and skip check header validity to get it to compile
+        hdr.ipv4.totalLen = hdr.ipv4.totalLen - meta.int_len_bytes;
+        hdr.udp.len = hdr.udp.len - meta.int_len_bytes;
+#endif
 
         // remove INT data added in INT sink
         hdr.int_switch_id.setInvalid();
-        hdr.int_level1_port_ids.setInvalid();
+        hdr.int_port_ids.setInvalid();
         hdr.int_ingress_tstamp.setInvalid();
         hdr.int_egress_tstamp.setInvalid();
         hdr.int_hop_latency.setInvalid();
@@ -72,12 +98,17 @@ control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standar
         // remove int data
         hdr.int_shim.setInvalid();
         hdr.int_header.setInvalid();
+#ifdef TOFINO
+        hdr.int_data.setInvalid();
+#endif
     }
 
     apply {
         // INT sink must process only INT packets
         if (!hdr.int_header.isValid())
             return;
+
+#ifdef BMV2
         if (standard_metadata.instance_type == PKT_INSTANCE_TYPE_NORMAL && meta.int_metadata.remove_int == 1) {
             // remove INT headers from a frame
             remove_sink_header();
@@ -86,5 +117,16 @@ control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standar
             // prepare an INT report for the INT collector
             Int_report.apply(hdr, meta, standard_metadata);
         }
+#elif TOFINO
+        if (meta.int_metadata.remove_int == 1 && !meta.mirror_md.isValid()) {
+            // remove INT headers from a frame
+            remove_sink_header();
+        }
+        if (meta.mirror_md.isValid()){
+            // cloned packet, make it into report for the INT collector
+            Int_report.apply(hdr, meta, standard_metadata, imp);
+        }
+#endif
+
     }
 }
