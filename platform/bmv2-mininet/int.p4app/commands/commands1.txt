@@ -1,13 +1,9 @@
 table_add tb_activate_source activate_source 1 =>
-table_add tb_int_source configure_source 10.0.1.1&&&0xFFFFFFFF 10.0.2.2&&&0xFFFFFFFF 0x11FF&&&0x0000 0x22FF&&&0x0000 => 4 10 8 0xFF00
-table_add tb_int_source configure_source 150.254.169.196&&&0xFFFFFFFF 195.113.172.46&&&0xFFFFFFFF 0x11FF&&&0xFFFF 0x4268&&&0xFFFF => 4 6 4 0xCC00
-
+table_add tb_int_source configure_source 10.0.1.1&&&0xFFFFFFFF 10.0.2.2&&&0xFFFFFFFF 0x11FF&&&0x0000 0x22FF&&&0x0000 => 4 10 8 0xFF00 0 
 table_add tb_int_sink configure_sink 1 => 4
 mirroring_add 1 4
 table_add tb_int_reporting send_report => f6:61:c0:6a:00:00  10.0.0.1  f6:61:c0:6a:14:21  10.0.0.254  6000
-
 table_add tb_int_transit configure_transit => 1
-
-table_add routing_id_table set_next_id_hop 0x0812 202271657 202271658 => 2
-table_add routing_id_table set_next_id_hop 0x0812 202271657 202271659 => 3
-
+table_add routing_v4_table set_next_v4_hop 0x0800 0.0.0.0&&&0x00000000 10.0.2.2&&&0xFFFFFFFF => 2 0
+table_add routing_v4_table set_next_v4_hop 0x0800 0.0.0.0&&&0x00000000 10.0.3.3&&&0xFFFFFFFF => 3 0
+table_add routing_v4_table set_next_v4_hop 0x0800 0.0.0.0&&&0x00000000 10.0.1.1&&&0xFFFFFFFF => 1 0
