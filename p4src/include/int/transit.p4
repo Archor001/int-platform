@@ -18,16 +18,8 @@
  * limitations under the License.
  */
 
-#ifdef BMV2
 
 control Int_transit(inout headers hdr, inout metadata meta, inout standard_metadata_t standard_metadata) {
-
-#elif TOFINO
-
-    control Int_transit(inout headers hdr, inout metadata meta, in egress_intrinsic_metadata_t standard_metadata, in egress_intrinsic_metadata_from_parser_t imp) {
-
-#endif
-
         // Configure parameters of INT transit node:
         // switch_id which is used within INT node metadata
         // l3_mtu is curently not used but should allow to detect condition if adding new INT metadata will exceed allowed MTU packet size
@@ -58,49 +50,26 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
             hdr.int_port_ids.setValid();
             //hdr.int_port_ids.ingress_port_id = (bit<16>)standard_metadata.ingress_port;
             hdr.int_port_ids.ingress_port_id = meta.int_metadata.ingress_port;
-            #ifdef BMV2
             hdr.int_port_ids.egress_port_id = (bit<16>)standard_metadata.egress_port;
-            #elif TOFINO
-
-            hdr.int_port_ids.egress_port_id = (bit<16>)standard_metadata.egress_port;
-            #endif
         }
         action int_set_header_2() {
             hdr.int_hop_latency.setValid();
-            #ifdef BMV2
             hdr.int_hop_latency.hop_latency = (bit<32>)(standard_metadata.egress_global_timestamp - standard_metadata.ingress_global_timestamp);
-            #elif TOFINO
-            hdr.int_hop_latency.hop_latency = (bit<32>)(imp.global_tstamp - meta.int_metadata.ingress_tstamp); 
-            #endif
         }
         action int_set_header_3() {
             hdr.int_q_occupancy.setValid();
             hdr.int_q_occupancy.q_id = 0; // qid not defined in v1model
-            #ifdef BMV2
             hdr.int_q_occupancy.q_occupancy = (bit<24>)standard_metadata.enq_qdepth;
-            #elif TOFINO
-            //DAMU: Only valid in egress pipeline
-            hdr.int_q_occupancy.q_occupancy = (bit<24>)standard_metadata.enq_qdepth;
-            /*hdr.int_q_occupancy.q_occupancy = 24w2;*/
-            #endif
         }
         action int_set_header_4() {
             hdr.int_ingress_tstamp.setValid();
-#ifdef BMV2
             bit<64> _timestamp = (bit<64>)meta.int_metadata.ingress_tstamp;  
             hdr.int_ingress_tstamp.ingress_tstamp = hdr.int_ingress_tstamp.ingress_tstamp + 1000 * _timestamp;
-#elif TOFINO
-            hdr.int_ingress_tstamp.ingress_tstamp = (bit<64>)meta.int_metadata.ingress_tstamp;
-#endif
         }
         action int_set_header_5() {
             hdr.int_egress_tstamp.setValid();
-#ifdef BMV2
             bit<64> _timestamp = (bit<64>)standard_metadata.egress_global_timestamp;
             hdr.int_egress_tstamp.egress_tstamp = hdr.int_egress_tstamp.egress_tstamp + 1000 * _timestamp;
-#elif TOFINO
-            hdr.int_egress_tstamp.egress_tstamp = (bit<64>)imp.global_tstamp;
-#endif
         }
         action int_set_header_6() {
             hdr.int_level2_port_ids.setValid();
@@ -358,9 +327,7 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
                 0xE000 &&& 0xF000 : int_set_header_0003_i14();
                 0xF000 &&& 0xF000 : int_set_header_0003_i15();
             }
-            #if TOFINO
             size = 512;
-            #endif
         }
 
         table tb_int_inst_0407 {
@@ -403,9 +370,7 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
                 0x0E00 &&& 0x0F00 : int_set_header_0407_i14();
                 0x0F00 &&& 0x0F00 : int_set_header_0407_i15();
             }
-            #if TOFINO
             size = 512;
-            #endif
         }
 
 
@@ -421,9 +386,6 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
         }
         action int_update_shim_ac() {
             hdr.int_shim.len = hdr.int_shim.len + (bit<8>)meta.int_metadata.int_hdr_word_len;
-#if TOFINO
-            meta.int_len_bytes = meta.int_len_bytes + (bit<16>)meta.int_metadata.insert_byte_cnt;
-#endif
         }
         action int_update_udp_ac() {
             hdr.udp.len = hdr.udp.len + (bit<16>)meta.int_metadata.insert_byte_cnt;

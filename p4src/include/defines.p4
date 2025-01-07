@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#ifndef __DEFINES__
 #define __DEFINES__
 #define MAX_PORTS 511
 #define CPU_PORT 255
@@ -29,15 +28,9 @@
 #define PKT_INSTANCE_TYPE_REPLICATION 5
 #define PKT_INSTANCE_TYPE_RESUBMIT 6
 
-#ifndef _BOOL
 #define _BOOL bool
-#endif
-#ifndef _TRUE
 #define _TRUE true
-#endif
-#ifndef _FALSE
 #define _FALSE false
-#endif
 
 typedef bit<9>   port_num_t;
 typedef bit<48>  mac_addr_t;
@@ -85,4 +78,3 @@ const bit<16> INT_ALL_HEADER_LEN_BYTES = INT_SHIM_HEADER_LEN_BYTES + INT_HEADER_
 const bit<4>  INT_VERSION = 1;
 const bit<4> INT_REPORT_HEADER_LEN_WORDS = 4;
 const bit<4> INT_REPORT_VERSION = 1;
-#endif
