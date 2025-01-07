@@ -34,9 +34,9 @@ control Int_report(inout headers hdr, inout metadata meta, inout standard_metada
 
             // Ethernet **********************************************************
             hdr.report_ethernet.setValid();
-            hdr.report_ethernet.dstAddr = collector_mac;
-            hdr.report_ethernet.srcAddr = dp_mac;
-            hdr.report_ethernet.etherType = 0x0800;
+            hdr.report_ethernet.dst_addr = collector_mac;
+            hdr.report_ethernet.src_addr = dp_mac;
+            hdr.report_ethernet.ether_type = 0x0800;
 
             // IPv4 **************************************************************
             hdr.report_ipv4.setValid();
@@ -46,31 +46,31 @@ control Int_report(inout headers hdr, inout metadata meta, inout standard_metada
             hdr.report_ipv4.ecn = 0;
 
             // 2x ipv4 header (20*2) + udp header (8) + eth header (14) + report header (16) + int data len
-            hdr.report_ipv4.totalLen = (bit<16>)(20 + 20 + 8 + 14)
+            hdr.report_ipv4.total_len = (bit<16>)(20 + 20 + 8 + 14)
                 + ((bit<16>)(INT_REPORT_HEADER_LEN_WORDS)<<2)
                 + (((bit<16>)hdr.int_shim.len) << 2);
                 
             // add size of original tcp/udp header
             if (hdr.tcp.isValid()) {
-                hdr.report_ipv4.totalLen = hdr.report_ipv4.totalLen
-                    + (((bit<16>)hdr.tcp.dataOffset) << 2);
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len
+                    + (((bit<16>)hdr.tcp.data_offset) << 2);
 
             } else {
-                hdr.report_ipv4.totalLen = hdr.report_ipv4.totalLen + 8;
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 8;
             }
             hdr.report_ipv4.id = 0;
             hdr.report_ipv4.flags = 0;
-            hdr.report_ipv4.fragOffset = 0;
+            hdr.report_ipv4.frag_offset = 0;
             hdr.report_ipv4.ttl = 64;
             hdr.report_ipv4.protocol = 17; // UDP
-            hdr.report_ipv4.srcAddr = dp_ip;
-            hdr.report_ipv4.dstAddr = collector_ip;
+            hdr.report_ipv4.src_addr = dp_ip;
+            hdr.report_ipv4.dst_addr = collector_ip;
 
             // UDP ***************************************************************
             hdr.report_udp.setValid();
-            hdr.report_udp.srcPort = 0;
-            hdr.report_udp.dstPort = collector_port;
-            hdr.report_udp.len = hdr.report_ipv4.totalLen - 20;
+            hdr.report_udp.src_port = 0;
+            hdr.report_udp.dst_port = collector_port;
+            hdr.report_udp.len = hdr.report_ipv4.total_len - 20;
 
             // INT report fixed header ************************************************/
             // INT report version 1.0
@@ -97,7 +97,7 @@ control Int_report(inout headers hdr, inout metadata meta, inout standard_metada
 
             // Original packet headers, INT shim and INT data come after report header.
             // drop all data besides int report and report eth header
-            truncate((bit<32>)hdr.report_ipv4.totalLen + 14);
+            truncate((bit<32>)hdr.report_ipv4.total_len + 14);
             }
             table tb_int_reporting {
                 actions = {

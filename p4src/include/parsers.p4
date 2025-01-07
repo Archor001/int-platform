@@ -30,15 +30,15 @@ parser ParserImpl(packet_in packet, out headers hdr, inout metadata meta, inout 
     }
     state parse_ethernet {
         packet.extract(hdr.ethernet);
-        transition select(hdr.ethernet.etherType) {
+        transition select(hdr.ethernet.ether_type) {
             16w0x800: parse_ipv4;
             default: accept;
         }
     }
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        meta.layer34_metadata.ip_src = hdr.ipv4.srcAddr;
-        meta.layer34_metadata.ip_dst = hdr.ipv4.dstAddr;
+        meta.layer34_metadata.ip_src = hdr.ipv4.src_addr;
+        meta.layer34_metadata.ip_dst = hdr.ipv4.dst_addr;
         meta.layer34_metadata.ip_ver = 8w4;
         meta.layer34_metadata.dscp = hdr.ipv4.dscp;
 
@@ -56,8 +56,8 @@ parser ParserImpl(packet_in packet, out headers hdr, inout metadata meta, inout 
     }
     state parse_tcp {
         packet.extract(hdr.tcp);
-        meta.layer34_metadata.l4_src = hdr.tcp.srcPort;
-        meta.layer34_metadata.l4_dst = hdr.tcp.dstPort;
+        meta.layer34_metadata.l4_src = hdr.tcp.src_port;
+        meta.layer34_metadata.l4_dst = hdr.tcp.dst_port;
         meta.layer34_metadata.l4_proto = 8w0x6;
         transition select(meta.layer34_metadata.dscp) {
             IPv4_DSCP_INT: parse_int;
@@ -66,10 +66,10 @@ parser ParserImpl(packet_in packet, out headers hdr, inout metadata meta, inout 
     }
     state parse_udp {
         packet.extract(hdr.udp);
-        meta.layer34_metadata.l4_src = hdr.udp.srcPort;
-        meta.layer34_metadata.l4_dst = hdr.udp.dstPort;
+        meta.layer34_metadata.l4_src = hdr.udp.src_port;
+        meta.layer34_metadata.l4_dst = hdr.udp.dst_port;
         meta.layer34_metadata.l4_proto = 8w0x11;
-        transition select(meta.layer34_metadata.dscp, hdr.udp.dstPort) {
+        transition select(meta.layer34_metadata.dscp, hdr.udp.dst_port) {
             (6w0x20 &&& 6w0x3f, 16w0x0 &&& 16w0x0): parse_int;
             default: accept;
         }
@@ -128,16 +128,16 @@ control computeChecksum(inout headers hdr, inout metadata meta) {
                 hdr.ipv4.ihl,
                 hdr.ipv4.dscp,
                 hdr.ipv4.ecn,
-                hdr.ipv4.totalLen,
+                hdr.ipv4.total_len,
                 hdr.ipv4.id,
                 hdr.ipv4.flags,
-                hdr.ipv4.fragOffset,
+                hdr.ipv4.frag_offset,
                 hdr.ipv4.ttl,
                 hdr.ipv4.protocol,
-                hdr.ipv4.srcAddr,
-                hdr.ipv4.dstAddr
+                hdr.ipv4.src_addr,
+                hdr.ipv4.dst_addr
             },
-            hdr.ipv4.hdrChecksum,
+            hdr.ipv4.hdr_checksum,
             HashAlgorithm.csum16
         );
         
@@ -148,43 +148,43 @@ control computeChecksum(inout headers hdr, inout metadata meta) {
                 hdr.report_ipv4.ihl,
                 hdr.report_ipv4.dscp,
                 hdr.report_ipv4.ecn,
-                hdr.report_ipv4.totalLen,
+                hdr.report_ipv4.total_len,
                 hdr.report_ipv4.id,
                 hdr.report_ipv4.flags,
-                hdr.report_ipv4.fragOffset,
+                hdr.report_ipv4.frag_offset,
                 hdr.report_ipv4.ttl,
                 hdr.report_ipv4.protocol,
-                hdr.report_ipv4.srcAddr,
-                hdr.report_ipv4.dstAddr
+                hdr.report_ipv4.src_addr,
+                hdr.report_ipv4.dst_addr
             },
-            hdr.report_ipv4.hdrChecksum,
+            hdr.report_ipv4.hdr_checksum,
             HashAlgorithm.csum16
         );
         
         update_checksum_with_payload(
             hdr.udp.isValid(), 
-            {  hdr.ipv4.srcAddr, 
-                hdr.ipv4.dstAddr, 
+            {  hdr.ipv4.src_addr, 
+                hdr.ipv4.dst_addr, 
                 8w0, 
                 hdr.ipv4.protocol, 
                 hdr.udp.len, 
-                hdr.udp.srcPort, 
-                hdr.udp.dstPort, 
+                hdr.udp.src_port, 
+                hdr.udp.dst_port, 
                 hdr.udp.len 
             }, 
-            hdr.udp.csum, 
+            hdr.udp.checksum, 
             HashAlgorithm.csum16
         ); 
 
         update_checksum_with_payload(
             hdr.udp.isValid() && hdr.int_header.isValid() , 
-            {  hdr.ipv4.srcAddr, 
-                hdr.ipv4.dstAddr, 
+            {  hdr.ipv4.src_addr, 
+                hdr.ipv4.dst_addr, 
                 8w0, 
                 hdr.ipv4.protocol, 
                 hdr.udp.len, 
-                hdr.udp.srcPort, 
-                hdr.udp.dstPort, 
+                hdr.udp.src_port, 
+                hdr.udp.dst_port, 
                 hdr.udp.len,
                 hdr.int_shim,
                 hdr.int_header,
@@ -197,7 +197,7 @@ control computeChecksum(inout headers hdr, inout metadata meta) {
                 hdr.int_egress_port_tx_util,
                 hdr.int_hop_latency
             }, 
-            hdr.udp.csum, 
+            hdr.udp.checksum, 
             HashAlgorithm.csum16
         );
     }

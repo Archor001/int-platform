@@ -382,7 +382,7 @@ control Int_transit(inout headers hdr, inout metadata meta, inout standard_metad
         }
 
         action int_update_ipv4_ac() {
-            hdr.ipv4.totalLen = hdr.ipv4.totalLen + (bit<16>)meta.int_metadata.insert_byte_cnt;
+            hdr.ipv4.total_len = hdr.ipv4.total_len + (bit<16>)meta.int_metadata.insert_byte_cnt;
         }
         action int_update_shim_ac() {
             hdr.int_shim.len = hdr.int_shim.len + (bit<8>)meta.int_metadata.int_hdr_word_len;

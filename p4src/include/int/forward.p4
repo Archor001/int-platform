@@ -32,7 +32,7 @@ control Forward(inout headers hdr, inout metadata meta, inout standard_metadata_
             send_to_port;
         }
         key = {
-            hdr.ethernet.dstAddr: ternary;
+            hdr.ethernet.dst_addr: ternary;
         }
         size = 31;
     }

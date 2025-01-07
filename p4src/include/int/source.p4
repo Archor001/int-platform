@@ -50,7 +50,7 @@ control Int_source(inout headers hdr, inout metadata meta, inout standard_metada
         hdr.int_shim.dscp = hdr.ipv4.dscp;
         
         hdr.ipv4.dscp = IPv4_DSCP_INT;   // indicates that INT header in the packet
-        hdr.ipv4.totalLen = hdr.ipv4.totalLen + INT_ALL_HEADER_LEN_BYTES;  // adding size of INT headers
+        hdr.ipv4.total_len = hdr.ipv4.total_len + INT_ALL_HEADER_LEN_BYTES;  // adding size of INT headers
         
         hdr.udp.len = hdr.udp.len + INT_ALL_HEADER_LEN_BYTES;
     }
@@ -63,8 +63,8 @@ control Int_source(inout headers hdr, inout metadata meta, inout standard_metada
             configure_source;
         }
         key = {
-            hdr.ipv4.srcAddr     : ternary;
-            hdr.ipv4.dstAddr     : ternary;
+            hdr.ipv4.src_addr     : ternary;
+            hdr.ipv4.dst_addr     : ternary;
             meta.layer34_metadata.l4_src: ternary;
             meta.layer34_metadata.l4_dst: ternary;
         }

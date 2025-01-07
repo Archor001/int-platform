@@ -54,7 +54,7 @@ control Int_sink(inout headers hdr, inout metadata meta, inout standard_metadata
          // restore original headers
         hdr.ipv4.dscp = hdr.int_shim.dscp;
         bit<16> len_bytes = ((bit<16>)hdr.int_shim.len) << 2;
-        hdr.ipv4.totalLen = hdr.ipv4.totalLen - len_bytes;
+        hdr.ipv4.total_len = hdr.ipv4.total_len - len_bytes;
         if (hdr.udp.isValid()) {
             hdr.udp.len = hdr.udp.len - len_bytes;
         }

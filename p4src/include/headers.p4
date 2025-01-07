@@ -29,9 +29,9 @@
 #define PKT_INSTANCE_TYPE_RESUBMIT 6
 
 header ethernet_t {
-    bit<48> dstAddr;
-    bit<48> srcAddr;
-    bit<16> etherType;
+    bit<48> dst_addr;
+    bit<48> src_addr;
+    bit<16> ether_type;
 }
 
 header ipv4_t {
@@ -39,35 +39,35 @@ header ipv4_t {
     bit<4>  ihl;
     bit<6>  dscp;
     bit<2>  ecn;
-    bit<16> totalLen;
+    bit<16> total_len;
     bit<16> id;
     bit<3>  flags;
-    bit<13> fragOffset;
+    bit<13> frag_offset;
     bit<8>  ttl;
     bit<8>  protocol;
-    bit<16> hdrChecksum;
-    bit<32> srcAddr;
-    bit<32> dstAddr;
+    bit<16> hdr_checksum;
+    bit<32> src_addr;
+    bit<32> dst_addr;
 }
 
 header udp_t {
-    bit<16> srcPort;
-    bit<16> dstPort;
+    bit<16> src_port;
+    bit<16> dst_port;
     bit<16> len;
-    bit<16> csum;
+    bit<16> checksum;
 }
 
 header tcp_t {
-    bit<16> srcPort;
-    bit<16> dstPort;
-    bit<32> seqNum;
-    bit<32> ackNum;
-    bit<4>  dataOffset;
+    bit<16> src_port;
+    bit<16> dst_port;
+    bit<32> seq_no;
+    bit<32> ack_no;
+    bit<4>  data_offset;
     bit<3>  reserved;
     bit<9>  flags;
-    bit<16> winSize;
-    bit<16> csum;
-    bit<16> urgPoint;
+    bit<16> window;
+    bit<16> checksum;
+    bit<16> urgent_ptr;
 }
 
 const bit<6> IPv4_DSCP_INT = 0x20;   // indicates an INT header in the packet
