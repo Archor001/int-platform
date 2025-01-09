@@ -56,7 +56,7 @@ control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout stan
         }
         action int_set_header_3() {
             hdr.int_q_occupancy.setValid();
-            hdr.int_q_occupancy.q_id = 0; // qid not defined in v1model
+            hdr.int_q_occupancy.q_id = 34; // qid not defined in v1model
             hdr.int_q_occupancy.q_occupancy = (bit<24>)standard_metadata.enq_qdepth;
         }
         action int_set_header_4() {
@@ -72,13 +72,13 @@ control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout stan
         action int_set_header_6() {
             hdr.int_level2_port_ids.setValid();
             // no such metadata in v1model
-            hdr.int_level2_port_ids.ingress_port_id = 0;
+            hdr.int_level2_port_ids.ingress_port_id = 286331153;
             hdr.int_level2_port_ids.egress_port_id = 0;
         }
         action int_set_header_7() {
             hdr.int_egress_port_tx_util.setValid();
             // no such metadata in v1model
-            hdr.int_egress_port_tx_util.egress_port_tx_util = 0;
+            hdr.int_egress_port_tx_util.egress_port_tx_util = 858993459;
         }
 
         action add_1() {

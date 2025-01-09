@@ -23,10 +23,10 @@ import sys
 from time import sleep, time
 
 src_mac = "00:00:00:00:01:01"
-dst_mac = "00:00:00:00:02:02"
+dst_mac = "00:00:00:00:04:04"
 
 src_ip = "10.0.1.1"
-dst_ip = "10.0.2.2"
+dst_ip = "10.0.4.4"
 
 sport = 0x11FF
 dport = 0x22FF
