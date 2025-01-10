@@ -10,7 +10,7 @@ import io
 from influxdb import InfluxDBClient
 
 log_format = "[%(asctime)s] [%(levelname)s] - %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=log_format, filename="/tmp/bmv2-mininet/int.p4app/p4app_logs/int_collector.log")
+logging.basicConfig(level=logging.INFO, format=log_format, filename="/tmp/bmv2-mininet/int.p4app/p4app_logs/int_collector.log")
 logger = logging.getLogger('int_collector')
 
 

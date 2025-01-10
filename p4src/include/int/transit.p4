@@ -65,13 +65,15 @@ control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout stan
         }
         action int_set_header_5() {
             hdr.int_ingress_tstamp.setValid();
-            bit<64> _timestamp = (bit<64>)meta.int_metadata.ingress_tstamp;  
-            hdr.int_ingress_tstamp.ingress_tstamp = hdr.int_ingress_tstamp.ingress_tstamp + (bit<32>)(1000 * _timestamp);
+            // bit<64> _timestamp = (bit<64>)meta.int_metadata.ingress_tstamp;  
+            // hdr.int_ingress_tstamp.ingress_tstamp = hdr.int_ingress_tstamp.ingress_tstamp + (bit<32>)(1000 * _timestamp);
+            hdr.int_ingress_tstamp.ingress_tstamp = (bit<32>)meta.int_metadata.ingress_tstamp;
         }
         action int_set_header_6() {
             hdr.int_egress_tstamp.setValid();
-            bit<64> _timestamp = (bit<64>)standard_metadata.egress_global_timestamp;
-            hdr.int_egress_tstamp.egress_tstamp = hdr.int_egress_tstamp.egress_tstamp + (bit<32>)(1000 * _timestamp);
+            // bit<64> _timestamp = (bit<64>)standard_metadata.egress_global_timestamp;
+            // hdr.int_egress_tstamp.egress_tstamp = hdr.int_egress_tstamp.egress_tstamp + (bit<32>)(1000 * _timestamp);
+            hdr.int_egress_tstamp.egress_tstamp = (bit<32>)standard_metadata.egress_global_timestamp;
         }
 
         action add_1() {
