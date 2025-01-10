@@ -26,6 +26,7 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
     }
     state parse_ethernet {
         packet.extract(hdr.ethernet);
+        meta.modal_type = (bit<32>)hdr.ethernet.ether_type;
         transition select(hdr.ethernet.ether_type) {
             ETHERTYPE_IPV4: parse_ipv4;
             ETHERTYPE_IPV6: parse_ipv6;
@@ -176,14 +177,13 @@ control DeparserImpl(packet_out packet, in headers_t hdr) {
         packet.emit(hdr.int_header);
         
         // local INT node metadata
-        packet.emit(hdr.int_switch_id);     //bit 1
-        packet.emit(hdr.int_port_ids);       //bit 2
-        packet.emit(hdr.int_hop_latency);   //bit 3
-        packet.emit(hdr.int_q_occupancy);  // bit 4
-        packet.emit(hdr.int_ingress_tstamp);  // bit 5
-        packet.emit(hdr.int_egress_tstamp);   // bit 6
-        packet.emit(hdr.int_level2_port_ids);   // bit 7
-        packet.emit(hdr.int_egress_port_tx_util);  // bit 8
+        packet.emit(hdr.int_switch_id);     // 4 bytes
+        packet.emit(hdr.int_modal_type);    // 4 bytes
+        packet.emit(hdr.int_port_ids);      // 8 bytes
+        packet.emit(hdr.int_hop_latency);   // 4 bytes
+        packet.emit(hdr.int_q_occupancy);   // 4 bytes
+        packet.emit(hdr.int_ingress_tstamp);  // 4 bytes
+        packet.emit(hdr.int_egress_tstamp);   // 4 bytes
     }
 }
 
@@ -262,14 +262,13 @@ control computeChecksum(inout headers_t hdr, inout local_metadata_t meta) {
                 hdr.int_shim,
                 hdr.int_header,
                 hdr.int_switch_id,
+                hdr.int_modal_type,
                 hdr.int_port_ids,
+                hdr.int_hop_latency,
                 hdr.int_q_occupancy,
-                hdr.int_level2_port_ids,
                 hdr.int_ingress_tstamp,
-                hdr.int_egress_tstamp,
-                hdr.int_egress_port_tx_util,
-                hdr.int_hop_latency
-            }, 
+                hdr.int_egress_tstamp
+            },
             hdr.udp.checksum, 
             HashAlgorithm.csum16
         );

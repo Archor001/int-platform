@@ -61,13 +61,12 @@ control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standar
 
         // remove INT data added in INT sink
         hdr.int_switch_id.setInvalid();
+        hdr.int_modal_type.setInvalid();
         hdr.int_port_ids.setInvalid();
+        hdr.int_hop_latency.setInvalid();
+        hdr.int_q_occupancy.setInvalid();
         hdr.int_ingress_tstamp.setInvalid();
         hdr.int_egress_tstamp.setInvalid();
-        hdr.int_hop_latency.setInvalid();
-        hdr.int_level2_port_ids.setInvalid();
-        hdr.int_q_occupancy.setInvalid();
-        hdr.int_egress_port_tx_util.setInvalid();
         
         // remove int data
         hdr.int_shim.setInvalid();

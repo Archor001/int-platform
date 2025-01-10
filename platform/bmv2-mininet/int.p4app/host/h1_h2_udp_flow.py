@@ -45,14 +45,13 @@ if __name__ == "__main__":
     pkt_cnt = 0
     last_sec = time()
     try:
-        while True:
-            s.send(p)
-            packets.append(p)  # Append the packet to the list
-            pkt_cnt += 1
-            if time()-last_sec > 1.0:
-                print("Pkt/s", pkt_cnt)
-                pkt_cnt = 0
-                last_sec = time()
+        s.send(p)
+        packets.append(p)  # Append the packet to the list
+        pkt_cnt += 1
+        if time()-last_sec > 1.0:
+            print("Pkt/s", pkt_cnt)
+            pkt_cnt = 0
+            last_sec = time()
     except KeyboardInterrupt:
         print("Writing packets to pcap file...")
         wrpcap('send_udp_flow.pcap', packets)  # Write all packets to pcap file

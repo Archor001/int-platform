@@ -262,6 +262,10 @@ header int_switch_id_t {
     bit<32> switch_id;
 }
 
+header int_modal_type_t {
+    bit<32> modal_type;
+}
+
 header int_port_ids_t {
     bit<32> ingress_port_id;
     bit<32> egress_port_id;
@@ -282,15 +286,6 @@ header int_ingress_tstamp_t {
 
 header int_egress_tstamp_t {
     bit<32> egress_tstamp;
-}
-
-header int_level2_port_ids_t {
-    bit<32> ingress_port_id;
-    bit<32> egress_port_id;
-}
-
-header int_egress_port_tx_util_t {
-    bit<32> egress_port_tx_util;
 }
 
 header int_report_fixed_header_t {
@@ -368,14 +363,13 @@ struct headers_t {
     int_header_t              int_header;
   
     // local INT node metadata
-    int_egress_port_tx_util_t int_egress_port_tx_util;
-    int_egress_tstamp_t       int_egress_tstamp;
-    int_hop_latency_t         int_hop_latency;
-    int_ingress_tstamp_t      int_ingress_tstamp;
-    int_port_ids_t            int_port_ids;
-    int_level2_port_ids_t     int_level2_port_ids;
-    int_q_occupancy_t         int_q_occupancy;
     int_switch_id_t           int_switch_id;
+    int_modal_type_t          int_modal_type;
+    int_port_ids_t            int_port_ids;
+    int_hop_latency_t         int_hop_latency;
+    int_q_occupancy_t         int_q_occupancy;
+    int_egress_tstamp_t       int_egress_tstamp;
+    int_ingress_tstamp_t      int_ingress_tstamp;
 
     // INT metadata of previous nodes
     int_data_t                int_data;
@@ -386,6 +380,7 @@ struct local_metadata_t {
     l4_port_t       l4_src_port;
     l4_port_t       l4_dst_port;
     bit<6>          l4_dscp;
+    bit<32>         modal_type;
     bit<8>          name_tlv_length;
     bool            is_multicast;
     next_hop_id_t   next_hop_id;

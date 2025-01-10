@@ -80,7 +80,6 @@ function run-p4app {
             --name $P4APP_NAME \
             -v $1:$APP_TO_RUN \
             -e DISPLAY=$DISPLAY \
-            -v $P4APP_LOGDIR:/tmp/p4app_logs \
             -v $PLATFORM_DIR:/tmp/bmv2-mininet \
              $P4APP_CONTAINER_ARGS \
              $P4APP_IMAGE $APP_TO_RUN ${@:2}"

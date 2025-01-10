@@ -31,7 +31,7 @@ dst_ip = "10.0.2.2"
 sport = 0x11FF
 dport = 0x22FF
 
-data = "ABCDFE" 
+data = "ABCDFE"
 
 interface = [i for i in get_if_list() if "eth0" in i][0]
 s = conf.L2socket(iface=interface)

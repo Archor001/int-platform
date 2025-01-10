@@ -10,7 +10,7 @@ import io
 from influxdb import InfluxDBClient
 
 log_format = "[%(asctime)s] [%(levelname)s] - %(message)s"
-logging.basicConfig(level=logging.INFO, format=log_format, filename="/tmp/p4app_logs/int_collector.log")
+logging.basicConfig(level=logging.DEBUG, format=log_format, filename="/tmp/bmv2-mininet/int.p4app/p4app_logs/int_collector.log")
 logger = logging.getLogger('int_collector')
 
 
@@ -42,66 +42,49 @@ class HopMetadata:
         self.ins_map = ins_map
         
         self.__parse_switch_id()
+        self.__parse_modal_type()
         self.__parse_ports()
         self.__parse_hop_latency()
         self.__parse_queue_occupancy()
-        
         self.__parse_ingress_timestamp()
         self.__parse_egress_timestamp()
-        if int_version == 0:
-            self.__parse_queue_congestion()
-        elif int_version >= 1:
-            self.__parse_l2_ports()
-        self.__parse_egress_port_tx_util()
         
     def __parse_switch_id(self):
         if self.ins_map & 0x80:
             self.switch_id = int.from_bytes(self.data.read(4), byteorder='big')
             logger.debug('parse switch id: %d' % self.switch_id)
         
-    def __parse_ports(self):
+    def __parse_modal_type(self):
         if self.ins_map & 0x40:
-            self.l1_ingress_port_id = int.from_bytes(self.data.read(2), byteorder='big')
-            self.l1_egress_port_id = int.from_bytes(self.data.read(2), byteorder='big')
+            self.modal_type = int.from_bytes(self.data.read(4), byteorder='big')
+            logger.debug('parse modal type: %d' % self.modal_type)
+
+    def __parse_ports(self):
+        if self.ins_map & 0x20:
+            self.l1_ingress_port_id = int.from_bytes(self.data.read(4), byteorder='big')
+            self.l1_egress_port_id = int.from_bytes(self.data.read(4), byteorder='big')
             logger.debug('parse ingress port: %d, egress_port: %d' % (self.l1_ingress_port_id , self.l1_egress_port_id))
         
     def __parse_hop_latency(self):
-        if self.ins_map & 0x20:
+        if self.ins_map & 0x10:
             self.hop_latency  = int.from_bytes(self.data.read(4), byteorder='big')
             logger.debug('parse hop latency: %d' %  self.hop_latency)
     
     def __parse_queue_occupancy(self):
-        if self.ins_map & 0x10:
+        if self.ins_map & 0x04:
             self.queue_occupancy_id = int.from_bytes(self.data.read(1), byteorder='big')
             self.queue_occupancy = int.from_bytes(self.data.read(3), byteorder='big')
             logger.debug('parse queue_occupancy_id: %d, queue_occupancy: %d' % (self.queue_occupancy_id, self.queue_occupancy))
             
     def __parse_ingress_timestamp(self):
-        if self.ins_map & 0x08:
-            self.ingress_timestamp  = int.from_bytes(self.data.read(8), byteorder='big')
+        if self.ins_map & 0x02:
+            self.ingress_timestamp  = int.from_bytes(self.data.read(4), byteorder='big')
             logger.debug('parse ingress_timestamp: %d' %  self.ingress_timestamp)
             
     def __parse_egress_timestamp(self):
-        if self.ins_map & 0x04:
-            self.egress_timestamp  = int.from_bytes(self.data.read(8), byteorder='big')
-            logger.debug('parse egress_timestamp: %d' %  self.egress_timestamp)
-     
-    def  __parse_queue_congestion(self):
-        if self.ins_map & 0x02:
-            self.queue_congestion_id = int.from_bytes(self.data.read(1), byteorder='big')
-            self.queue_congestion = int.from_bytes(self.data.read(3), byteorder='big')
-            logger.debug('parse queue_congestion_id: %d, queue_congestion: %d' % (self.queue_congestion_id, self.queue_congestion))
-            
-    def  __parse_l2_ports(self):
-        if self.ins_map & 0x02:
-            self.l2_ingress_port_id = int.from_bytes(self.data.read(2), byteorder='big')
-            self.l2_egress_port_id = int.from_bytes(self.data.read(2), byteorder='big')
-            logger.debug('parse L2 ingress port: %d, egress_port: %d' % (self.l2_ingress_port_id , self.l2_egress_port_id))
-            
-    def  __parse_egress_port_tx_util(self):
         if self.ins_map & 0x01:
-            self.egress_port_tx_util = int.from_bytes(self.data.read(4), byteorder='big')
-            logger.debug('parse egress_port_tx_util: %d' % self.egress_port_tx_util)
+            self.egress_timestamp  = int.from_bytes(self.data.read(4), byteorder='big')
+            logger.debug('parse egress_timestamp: %d' %  self.egress_timestamp)
             
     def unread_data(self):
         return self.data
@@ -252,10 +235,7 @@ class IntReport():
             logger.error("Unsupported INT version %s - skipping report" % self.int_version)
             raise Exception("Unsupported INT version %s - skipping report" % self.int_version)
 
-        self.ins_map = int.from_bytes(self.int_hdr[4:6], byteorder='big')
-        first_slice = (self.ins_map & 0b0000111100000000) << 4
-        second_slice = (self.ins_map & 0b1111000000000000) >> 4
-        self.ins_map = (first_slice + second_slice) >> 8
+        self.ins_map = int.from_bytes(self.int_hdr[4:5], byteorder='big')
         
         logger.debug(hex(self.ins_map))
 
