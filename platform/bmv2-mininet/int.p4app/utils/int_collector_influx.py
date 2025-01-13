@@ -277,10 +277,11 @@ class IntCollector():
     def __init__(self, influx, period):
         self.influx = influx
         self.reports = []
-        self.last_dstts = {} # save last `dstts` per each monitored flow
+        self.last_delay = 0 # save last delay
         self.last_reordering = {}  # save last `reordering` per each monitored flow
-        self.last_hop_ingress_timestamp = {} #save last ingress timestamp per each hop in each monitored flow
+        self.last_hop_latency = {} #save last hop_latency per each hop in each monitored flow
         self.period = period # maximum time delay of int report sending to influx
+        self.last_egress_timestamp = 0 # save last egress_timestamp 
         self.last_send = time.time() # last time when reports were send to influx
         
     def add_report(self, report):
@@ -317,15 +318,15 @@ class IntCollector():
         }
         
         # add sink_jitter only if can be calculated (not first packet in the flow)  
-        if flow_key in self.last_dstts:
-            json_report["fields"]["sink_jitter"] = 1.0*destination_timestamp - self.last_dstts[flow_key]
+        if self.last_delay != 0:
+            json_report["fields"]["sink_jitter"] = abs(1.0*(destination_timestamp-origin_timestamp) - self.last_delay)
         
         # add reordering only if can be calculated (not first packet in the flow)  
         if flow_key in self.last_reordering:
             json_report["fields"]["reordering"] = 1.0*report.seq_num - self.last_reordering[flow_key] - 1
                         
         # save dstts for purpose of sink_jitter calculation
-        self.last_dstts[flow_key] = destination_timestamp
+        self.last_delay = 1.0*(destination_timestamp-origin_timestamp)
         
         # save dstts for purpose of sink_jitter calculation
         self.last_reordering[flow_key] = report.seq_num
@@ -354,19 +355,20 @@ class IntCollector():
         flow_hop_key = (*flow_key, index)
         
         # add sink_jitter only if can be calculated (not first packet in the flow)  
-        if flow_hop_key in self.last_hop_ingress_timestamp:
-            json_report["fields"]["hop_jitter"] =  hop.ingress_timestamp - self.last_hop_ingress_timestamp[flow_hop_key]
+        if flow_hop_key in self.last_hop_latency:
+            json_report["fields"]["hop_jitter"] = abs(hop.hop_latency - self.last_hop_latency[flow_hop_key])
             
         if "hop_latency" in vars(hop):
             json_report["fields"]["hop_delay"] = hop.hop_latency
             
-        if "ingress_timestamp" in vars(hop) and index > 0:
-            json_report["fields"]["link_delay"] = hop.ingress_timestamp - self.last_hop_delay
-            self.last_hop_delay = hop.ingress_timestamp
-            
         if "ingress_timestamp" in vars(hop):
-            # save hop.ingress_timestamp for purpose of node_jitter calculation
-            self.last_hop_ingress_timestamp[flow_hop_key] = hop.ingress_timestamp
+            if index > 0:
+                json_report["fields"]["link_delay"] = hop.ingress_timestamp - self.last_egress_timestamp
+            self.last_egress_timestamp = hop.egress_timestamp
+            
+        if "hop_latency" in vars(hop):
+            # save hop.hop_latency for purpose of hop_jitter calculation
+            self.last_hop_latency[flow_hop_key] = hop.hop_latency
         return json_report
         
         
@@ -374,8 +376,7 @@ class IntCollector():
         flow_key = "%(srcip)s, %(dstip)s, %(scrp)s, %(dstp)s, %(protocol)s" % report.flow_id 
         reports = []
         reports.append(self.__prepare_e2e_report(report, flow_key))
-        
-        self.last_hop_delay = report.hop_metadata[-1].ingress_timestamp
+        self.last_egress_timestamp = 0
         for index, hop in enumerate(reversed(report.hop_metadata)):
             reports.append(self.__prepare_hop_report(report, index, hop, flow_key))
         return reports
