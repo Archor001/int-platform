@@ -365,6 +365,9 @@ class IntCollector():
             
         if "hop_latency" in vars(hop):
             json_report["fields"]["hop_delay"] = hop.hop_latency
+
+        if "queue_occupancy" in vars(hop):
+            json_report["fields"]["queue_occupancy"] = hop.queue_occupancy
             
         if "ingress_timestamp" in vars(hop):
             if index > 0:
