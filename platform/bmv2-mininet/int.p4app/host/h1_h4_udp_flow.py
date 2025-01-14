@@ -55,5 +55,5 @@ if __name__ == "__main__":
                 last_sec = time()
     except KeyboardInterrupt:
         print("Writing packets to pcap file...")
-        wrpcap('send_udp_flow.pcap', packets)  # Write all packets to pcap file
+        # wrpcap('send_udp_flow.pcap', packets)  # Write all packets to pcap file
         print("Done.")

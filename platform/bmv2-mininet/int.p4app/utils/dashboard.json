@@ -128,7 +128,7 @@
             "yaxes": [
                 {
                     "$$hashKey": "object:96",
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -259,7 +259,7 @@
             "yaxes": [
                 {
                     "$$hashKey": "object:96",
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -542,7 +542,7 @@
             },
             "yaxes": [
                 {
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -550,7 +550,7 @@
                     "show": true
                 },
                 {
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -820,7 +820,7 @@
             "yaxes": [
                 {
                     "$$hashKey": "object:96",
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -951,7 +951,7 @@
             "yaxes": [
                 {
                     "$$hashKey": "object:96",
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -1082,7 +1082,7 @@
             "yaxes": [
                 {
                     "$$hashKey": "object:96",
-                    "format": "ns",
+                    "format": "μs",
                     "label": null,
                     "logBase": 1,
                     "max": null,
@@ -1306,7 +1306,7 @@
         ]
     },
     "timezone": "",
-    "title": "INT Monitoring compact (time-averaging)",
+    "title": "INT Monitoring",
     "uid": "pcigqzAMz",
     "version": 10
 }
