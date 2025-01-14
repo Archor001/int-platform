@@ -47,7 +47,7 @@ control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout stan
         }
         action int_set_header_1() {
             hdr.int_modal_type.setValid();
-            hdr.int_modal_type.modal_type = meta.modal_type;
+            hdr.int_modal_type.modal_type = (bit<32>)meta.modal_type;
         }
         action int_set_header_2() {
             hdr.int_port_ids.setValid();
@@ -345,7 +345,9 @@ control Int_transit(inout headers_t hdr, inout local_metadata_t meta, inout stan
             tb_int_inst_0406.apply();
 
             //update length fields in IPv4, UDP and INT
-            int_update_ipv4_ac();
+            if (hdr.ipv4.isValid()) { 
+                int_update_ipv4_ac();
+            }
 
             if (hdr.udp.isValid())
                 int_update_udp_ac();

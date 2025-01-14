@@ -36,7 +36,7 @@ control Int_report(inout headers_t hdr, inout local_metadata_t meta, inout stand
             hdr.report_ethernet.setValid();
             hdr.report_ethernet.dst_addr = collector_mac;
             hdr.report_ethernet.src_addr = dp_mac;
-            hdr.report_ethernet.ether_type = 0x0800;
+            hdr.report_ethernet.ether_type = meta.modal_type;
 
             // IPv4 **************************************************************
             hdr.report_ipv4.setValid();
@@ -81,7 +81,24 @@ control Int_report(inout headers_t hdr, inout local_metadata_t meta, inout stand
             hdr.report_fixed_header.nprot = 0; // 0 for Ethernet
             hdr.report_fixed_header.rep_md_bits_high = 0;
             hdr.report_fixed_header.rep_md_bits_low = 0;
-            hdr.report_fixed_header.reserved = 0;
+            if (meta.modal_type == ETHERTYPE_IPV4) {
+                hdr.report_fixed_header.reserved = 0;
+            }
+            if (meta.modal_type == ETHERTYPE_ID) {
+                hdr.report_fixed_header.reserved = 1;
+            }
+            if (meta.modal_type == ETHERTYPE_GEO) {
+                hdr.report_fixed_header.reserved = 2;
+            }
+            if (meta.modal_type == ETHERTYPE_MF) {
+                hdr.report_fixed_header.reserved = 3;
+            }
+            if (meta.modal_type == ETHERTYPE_NDN) {
+                hdr.report_fixed_header.reserved = 4;
+            }
+            if (meta.modal_type == ETHERTYPE_FLEXIP) {
+                hdr.report_fixed_header.reserved = 5;
+            }
             hdr.report_fixed_header.d = 0;
             hdr.report_fixed_header.q = 0;
             // f - indicates that report is for tracked flow, INT data is present

@@ -47,11 +47,31 @@ control Int_source(inout headers_t hdr, inout local_metadata_t meta, inout stand
         hdr_seq_num_register.read(hdr.int_header.seq, 0);
         hdr_seq_num_register.write(0, hdr.int_header.seq + 1);
 
-        hdr.int_shim.dscp = hdr.ipv4.dscp;
-        
-        hdr.ipv4.dscp = IPv4_DSCP_INT;   // indicates that INT header in the packet
-        hdr.ipv4.total_len = hdr.ipv4.total_len + INT_ALL_HEADER_LEN_BYTES;  // adding size of INT headers
-        
+        if (hdr.ipv4.isValid()) {
+            hdr.int_shim.dscp = hdr.ipv4.dscp;
+            hdr.ipv4.dscp = DSCP_INT;   // indicates that INT header in the packet
+            hdr.ipv4.total_len = hdr.ipv4.total_len + INT_ALL_HEADER_LEN_BYTES;  // adding size of INT headers
+        }
+        if (hdr.id.isValid()) {
+            hdr.int_shim.dscp = hdr.id.dscp;
+            hdr.id.dscp = DSCP_INT;
+        }
+        if (hdr.mf.isValid()) {
+            hdr.int_shim.dscp = hdr.mf.dscp;
+            hdr.mf.dscp = DSCP_INT;
+        }
+        if (hdr.geo.isValid()) {
+            hdr.int_shim.dscp = hdr.geo.dscp;
+            hdr.geo.dscp = DSCP_INT;
+        }
+        if (hdr.ndn.isValid()) {
+            hdr.int_shim.dscp = hdr.ndn.ndn_prefix.dscp;
+            hdr.ndn.ndn_prefix.dscp = DSCP_INT;
+        }
+        if (hdr.flexip.isValid()) {
+            hdr.int_shim.dscp = hdr.flexip.dscp;
+            hdr.flexip.dscp = DSCP_INT;
+        }
         hdr.udp.len = hdr.udp.len + INT_ALL_HEADER_LEN_BYTES;
     }
     

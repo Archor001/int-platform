@@ -103,6 +103,37 @@ class HopMetadata:
 def ip2str(ip):
     return "{}.{}.{}.{}".format(ip[0],ip[1],ip[2],ip[3])
 
+def modal2str(hdr, modal, which):
+    if modal == 0:      # ipv4
+        if which == 0:
+            return ip2str(hdr[12:16])
+        if which == 1:
+            return ip2str(hdr[16:20])
+    if modal == 1:      # id
+        if which == 0:
+            return "{}".format(hdr[1:5])
+        if which == 1:
+            return "{}".format(hdr[5:9])
+    # if modal == 2:      # geo
+    #     if which == 0:
+    #         return "{}".format(hdr[1:5])
+    #     if which == 1:
+    #         return "{}".format(hdr[5:9])
+    if modal == 3:      # mf
+        if which == 0:
+            return "{}".format(hdr[5:9])
+        if which == 1:
+            return "{}".format(hdr[9:13])
+    if modal == 4:      # ndn
+        if which == 0:
+            return "{}".format(hdr[15:17])
+        if which == 1:
+            return "{}".format(hdr[17:19])
+    # if modal == 5:      # flexip
+    #     if which == 0:
+    #         return "{}".format(hdr[1:5])
+    #     if which == 1:
+    #         return "{}".format(hdr[5:9])
 
 
 # ethernet(14B) + IP(20B) + UDP(8B)
@@ -145,6 +176,7 @@ class IntReport():
         self.len = self.int_report_hdr[0] & 0x0f
         self.nprot = self.int_report_hdr[1] >> 5
         self.rep_md_bits = (self.int_report_hdr[1] & 0x1f) + (self.int_report_hdr[2] >> 7)
+        self.reserved = self.int_report_hdr[2] & 0x7e
         self.d = self.int_report_hdr[2] & 0x01
         self.q = self.int_report_hdr[3] >> 7
         self.f = (self.int_report_hdr[3] >> 6) & 0x01
@@ -152,15 +184,36 @@ class IntReport():
         self.switch_id, self.seq_num, self.ingress_tstamp = struct.unpack('!3I', orig_data[4:16])
 
         # flow id
-        self.ip_hdr = data[30:50]
-        self.udp_hdr = data[50:58]
-        protocol = self.ip_hdr[9]
+        if self.reserved == 0:  # ipv4
+            self.modal_hdr = data[30:50]
+            self.udp_hdr = data[50:58]
+            protocol = self.modal_hdr[9]
+        if self.reserved == 1:  # id
+            self.modal_hdr = data[30:39]
+            self.udp_hdr = data[39:47]
+            protocol = modal_protocol(self.modal_hdr[0])
+        # if self.reserved == 2:  # geo
+        #     self.modal_hdr = data[30:39]
+        #     self.udp_hdr = data[39:47]
+        #     protocol = modal_protocol(self.modal_hdr[0])
+        if self.reserved == 3:  # mf
+            self.modal_hdr = data[30:43]
+            self.udp_hdr = data[43:51]
+            protocol = modal_protocol(self.modal_hdr[0])
+        if self.reserved == 4:  # ndn
+            self.modal_hdr = data[30:67]
+            self.udp_hdr = data[67:71]
+            protocol = modal_protocol(self.modal_hdr[0])
+        # if self.reserved == 5:  # flexip
+        #     self.modal_hdr = data[30:39]
+        #     self.udp_hdr = data[39:47]
+        #     protocol = modal_protocol(self.modal_hdr[0])
         self.flow_id = {
-            'srcip': ip2str(self.ip_hdr[12:16]),
-            'dstip': ip2str(self.ip_hdr[16:20]), 
+            'src': modal2str(self.modal_hdr, self.reserved, 0),
+            'dst': modal2str(self.modal_hdr, self.reserved, 1), 
             'scrp': struct.unpack('!H', self.udp_hdr[:2])[0],
             'dstp': struct.unpack('!H', self.udp_hdr[2:4])[0],
-            'protocol': self.ip_hdr[9],       
+            'protocol': protocol,       
         }
 
         # check next protocol
@@ -256,11 +309,17 @@ class IntReport():
                 
         logger.debug(vars(self))
             
+    def modal_protocol(value):
+        if value == 0:
+            return 6
+        else 
+            return 17
+
     def __str__(self):
         hop_info = ''
         for hop in self.hop_metadata:
             hop_info += str(hop) + '\n'
-        flow_tuple = "src_ip: %(srcip)s, dst_ip: %(dstip)s, src_port: %(scrp)s, dst_port: %(dstp)s, protocol: %(protocol)s" % self.flow_id 
+        flow_tuple = "src_ip: %(src)s, dst_ip: %(dst)s, src_port: %(scrp)s, dst_port: %(dstp)s, protocol: %(protocol)s" % self.flow_id 
         additional_info =  "sw: %s, seq: %s, int version: %s, ins_map: 0x%x, hops: %d" % (
             self.switch_id,
             self.seq_num,
@@ -365,6 +424,7 @@ class IntCollector():
             
         if "hop_latency" in vars(hop):
             json_report["fields"]["hop_delay"] = hop.hop_latency
+            self.last_hop_latency[flow_hop_key] = hop.hop_latency
 
         if "queue_occupancy" in vars(hop):
             json_report["fields"]["queue_occupancy"] = hop.queue_occupancy
@@ -374,14 +434,12 @@ class IntCollector():
                 json_report["fields"]["link_delay"] = hop.ingress_timestamp - self.last_hop_egress_timestamp
             self.last_hop_egress_timestamp = hop.egress_timestamp
             
-        if "hop_latency" in vars(hop):
-            # save hop.hop_latency for purpose of hop_jitter calculation
-            self.last_hop_latency[flow_hop_key] = hop.hop_latency
+        json_report["fields"]["modal_type"] = hop.modal_type
         return json_report
         
         
     def __prepare_reports(self, report):
-        flow_key = "%(srcip)s, %(dstip)s, %(scrp)s, %(dstp)s, %(protocol)s" % report.flow_id 
+        flow_key = "%(src)s, %(dst)s, %(scrp)s, %(dstp)s, %(protocol)s" % report.flow_id 
         reports = []
         reports.append(self.__prepare_e2e_report(report, flow_key))
         self.last_hop_egress_timestamp = 0
@@ -470,5 +528,5 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
     start_udp_server(args)
 
-# SELECT mean("node_delay")  FROM int_telemetry  WHERE ("srcip" =~ /^$srcip$/ AND "dstip" =~ /^$dstip$/ AND  "node_index" =~ /^$hop$/) AND $timeFilter  GROUP BY time($interval) fill(null)
-# SELECT mean("node_delay") FROM "int_udp_policy"."int_telemetry" WHERE ("srcip" = '10.0.1.1' AND "dstip" = '10.0.2.2' AND "hop_number" = '0') AND $timeFilter GROUP BY time($__interval) fill(null)
+# SELECT mean("node_delay")  FROM int_telemetry  WHERE ("src" =~ /^$src$/ AND "dst" =~ /^$dst$/ AND  "node_index" =~ /^$hop$/) AND $timeFilter  GROUP BY time($interval) fill(null)
+# SELECT mean("node_delay") FROM "int_udp_policy"."int_telemetry" WHERE ("src" = '10.0.1.1' AND "dst" = '10.0.2.2' AND "hop_number" = '0') AND $timeFilter GROUP BY time($__interval) fill(null)

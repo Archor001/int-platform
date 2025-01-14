@@ -70,7 +70,7 @@ const MeterColor MeterColor_YELLOW = 8w1;
 const MeterColor MeterColor_RED = 8w2;
 
 // int
-const bit<6>  IPv4_DSCP_INT = 0x20;  // indicates an INT header in the packet
+const bit<6>  DSCP_INT = 0x20;  // indicates an INT header in the packet
 const bit<8>  INT_TYPE_HOP_BY_HOP = 1;   // HOP_BY_HOP INT type 
 const bit<16> INT_SHIM_HEADER_LEN_BYTES = 4;
 const bit<16> INT_HEADER_LEN_BYTES = 8;

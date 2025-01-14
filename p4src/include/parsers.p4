@@ -26,7 +26,7 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
     }
     state parse_ethernet {
         packet.extract(hdr.ethernet);
-        meta.modal_type = (bit<32>)hdr.ethernet.ether_type;
+        meta.modal_type = hdr.ethernet.ether_type;
         transition select(hdr.ethernet.ether_type) {
             ETHERTYPE_IPV4: parse_ipv4;
             ETHERTYPE_IPV6: parse_ipv6;
@@ -40,7 +40,7 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
     }
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        meta.l4_dscp = hdr.ipv4.dscp;
+        meta.dscp = hdr.ipv4.dscp;
         transition select(hdr.ipv4.protocol) {
             IP_PROTO_TCP: parse_tcp;
             IP_PROTO_UDP: parse_udp;
@@ -59,21 +59,37 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
 
     state parse_flexip {
         packet.extract(hdr.flexip);
-        transition accept;
+        meta.dscp = hdr.flexip.dscp;
+        transition select(hdr.flexip.protocol) {
+            0:    parse_tcp;
+            1:    parse_udp;
+            default: accept;
+        }
     }
 
     state parse_id {
         packet.extract(hdr.id);
-        transition accept;
+        meta.dscp = hdr.id.dscp;
+        transition select(hdr.id.protocol) {
+            0:    parse_tcp;
+            1:    parse_udp;
+            default: accept;
+        }
     }
 
     state parse_mf {
         packet.extract(hdr.mf);
-        transition accept;
+        meta.dscp = hdr.mf.dscp;
+        transition select(hdr.mf.protocol) {
+            0:    parse_tcp;
+            1:    parse_udp;
+            default: accept;
+        }
     }
 
     state parse_geo {
         packet.extract(hdr.geo);
+        meta.dscp = hdr.geo.dscp;
         transition select(hdr.geo.ht) { //
             TYPE_geo_beacon: parse_beacon; //0x01
             TYPE_geo_gbc: parse_gbc; //0x04
@@ -83,16 +99,25 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
 
     state parse_beacon{
         packet.extract(hdr.beacon);
-        transition accept;
+        transition select(hdr.geo.protocol) {
+            0:    parse_tcp;
+            1:    parse_udp;
+            default: accept;
+        }
     }
 
     state parse_gbc{
         packet.extract(hdr.gbc);
-        transition accept;
+        transition select(hdr.geo.protocol) {
+            0:    parse_tcp;
+            1:    parse_udp;
+            default: accept;
+        }
     }
 
     state parse_ndn {
         packet.extract(hdr.ndn.ndn_prefix);
+        meta.dscp = hdr.ndn.ndn_prefix.dscp;
         transition parse_ndn_name;
     }
 
@@ -120,14 +145,18 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
 
     state parse_ndn_content {
         packet.extract(hdr.ndn.content_tlv);
-        transition accept;
+        transition select(hdr.ndn.ndn_prefix.protocol) {
+            0:    parse_tcp;
+            1:    parse_udp;
+            default: accept;
+        }
     }
 
     state parse_tcp {
         packet.extract(hdr.tcp);
         meta.l4_src_port = hdr.tcp.src_port;
         meta.l4_dst_port = hdr.tcp.dst_port;
-        transition select(meta.l4_dscp) {
+        transition select(meta.dscp) {
             IPv4_DSCP_INT: parse_int;
             default: accept;
         }
@@ -136,7 +165,7 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
         packet.extract(hdr.udp);
         meta.l4_src_port = hdr.udp.src_port;
         meta.l4_dst_port = hdr.udp.dst_port;
-        transition select(meta.l4_dscp, hdr.udp.dst_port){
+        transition select(meta.dscp, hdr.udp.dst_port){
             (6w0x20 &&& 6w0x3f, 16w0x0 &&& 16w0x0): parse_int;
             default: accept;
         }

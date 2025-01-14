@@ -53,6 +53,8 @@ header ipv4_t {
 }
 
 header flexip_t {
+    bit<6>    dscp;
+    bit<2>    protocol;
     bit<4>    version;
     bit<2>    src_format;
     bit<2>    dst_format;
@@ -108,8 +110,8 @@ header ndp_t {
 }
 
 header ndn_prefix_t {
-    bit<8> code;
-    bit<8> len_code;
+    bit<8>  code;
+    bit<8>  len_code;
     bit<16> length;
 }
 
@@ -175,6 +177,8 @@ struct ndn_t {
 }
 
 header geo_t{
+    bit<6>  dscp;
+    bit<2>  protocol;
     bit<4> version;
     bit<4> nh_basic;
     bit<8> reserved_basic;
@@ -222,12 +226,16 @@ header beacon_t{
 }
 
 header mf_t{
+    bit<6>  dscp;
+    bit<2>  protocol;
     bit<32> mf_type;
     bit<32> src_guid;
     bit<32> dst_guid;
 }
 
 header id_t {
+    bit<6>  dscp;
+    bit<2>  protocol;
     bit<32> src_identity;
     bit<32> dst_identity;
 }
@@ -239,7 +247,7 @@ header int_shim_t {
     bit<8> int_type;
     bit<8> rsvd1;
     bit<8> len;         // the length of all INT headers in 4-byte words
-    bit<6> dscp;        // ipv4.dscp
+    bit<6> dscp;        // modal dscp
     bit<2> rsvd3;
 }
 
@@ -379,8 +387,8 @@ struct local_metadata_t {
     int_metadata_t  int_metadata;
     l4_port_t       l4_src_port;
     l4_port_t       l4_dst_port;
-    bit<6>          l4_dscp;
-    bit<32>         modal_type;
+    bit<6>          dscp;
+    bit<16>         modal_type;
     bit<8>          name_tlv_length;
     bool            is_multicast;
     next_hop_id_t   next_hop_id;
