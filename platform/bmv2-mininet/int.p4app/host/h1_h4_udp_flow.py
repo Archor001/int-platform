@@ -86,8 +86,8 @@ if __name__ == "__main__":
         while True:
             start_time = time.time()  # 记录发送开始时间
 
-            s.send(p1)
-            packets.append(p1)  # 将数据包添加到列表中
+            s.send(p4)
+            packets.append(p4)  # 将数据包添加到列表中
             pkt_cnt += 1
 
             # 计算实际发送时间，并调整等待时间

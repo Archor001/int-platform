@@ -128,9 +128,9 @@ def modal2str(hdr, modal, which):
             return "0x" + hdr[9:13].hex()
     if modal == 4:      # ndn
         if which == 0:
-            return "0x" + hdr[15:17].hex()
+            return "0x" + hdr[9:13].hex()
         if which == 1:
-            return "0x" + hdr[17:19].hex()
+            return "0x" + hdr[15:19].hex()
     # if modal == 5:      # flexip
 
 
