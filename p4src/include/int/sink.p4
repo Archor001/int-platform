@@ -52,9 +52,10 @@ control Int_sink_config(inout headers_t hdr, inout local_metadata_t meta, inout 
 control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standard_metadata_t standard_metadata) {
     action remove_sink_header() {
          // restore original headers
+         bit<16> len_bytes = 0;
         if (hdr.ipv4.isValid()) {
             hdr.ipv4.dscp = hdr.int_shim.dscp;
-            bit<16> len_bytes = ((bit<16>)hdr.int_shim.len) << 2;
+            len_bytes = ((bit<16>)hdr.int_shim.len) << 2;
             hdr.ipv4.total_len = hdr.ipv4.total_len - len_bytes;
         }
         if (hdr.id.isValid()) {
@@ -66,7 +67,7 @@ control Int_sink(inout headers_t hdr, inout local_metadata_t meta, inout standar
         if (hdr.geo.isValid()) {
             hdr.geo.dscp = hdr.int_shim.dscp;
         }
-        if (hdr.ndn.isValid()) {
+        if (hdr.ndn.ndn_prefix.isValid()) {
             hdr.ndn.ndn_prefix.dscp = hdr.int_shim.dscp;
         }
         if (hdr.flexip.isValid()) {

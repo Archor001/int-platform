@@ -1,6 +1,7 @@
 import subprocess
 import time
 from mininet.topo import Topo
+from mininet.node import Host
 
 _THRIFT_BASE_PORT = 22222
 

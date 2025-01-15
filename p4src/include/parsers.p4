@@ -157,7 +157,7 @@ parser ParserImpl(packet_in packet, out headers_t hdr, inout local_metadata_t me
         meta.l4_src_port = hdr.tcp.src_port;
         meta.l4_dst_port = hdr.tcp.dst_port;
         transition select(meta.dscp) {
-            IPv4_DSCP_INT: parse_int;
+            DSCP_INT: parse_int;
             default: accept;
         }
     }

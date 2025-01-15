@@ -110,6 +110,8 @@ header ndp_t {
 }
 
 header ndn_prefix_t {
+    bit<6>  dscp;
+    bit<2>  protocol;
     bit<8>  code;
     bit<8>  len_code;
     bit<16> length;

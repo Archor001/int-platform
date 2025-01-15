@@ -64,7 +64,7 @@ control Int_source(inout headers_t hdr, inout local_metadata_t meta, inout stand
             hdr.int_shim.dscp = hdr.geo.dscp;
             hdr.geo.dscp = DSCP_INT;
         }
-        if (hdr.ndn.isValid()) {
+        if (hdr.ndn.ndn_prefix.isValid()) {
             hdr.int_shim.dscp = hdr.ndn.ndn_prefix.dscp;
             hdr.ndn.ndn_prefix.dscp = DSCP_INT;
         }
@@ -83,8 +83,6 @@ control Int_source(inout headers_t hdr, inout local_metadata_t meta, inout stand
             configure_source;
         }
         key = {
-            hdr.ipv4.src_addr     : ternary;
-            hdr.ipv4.dst_addr     : ternary;
             meta.l4_src_port      : ternary;
             meta.l4_dst_port      : ternary;
         }

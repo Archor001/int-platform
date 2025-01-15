@@ -36,7 +36,7 @@ control Int_report(inout headers_t hdr, inout local_metadata_t meta, inout stand
             hdr.report_ethernet.setValid();
             hdr.report_ethernet.dst_addr = collector_mac;
             hdr.report_ethernet.src_addr = dp_mac;
-            hdr.report_ethernet.ether_type = meta.modal_type;
+            hdr.report_ethernet.ether_type = 0x0800;
 
             // IPv4 **************************************************************
             hdr.report_ipv4.setValid();
@@ -45,10 +45,30 @@ control Int_report(inout headers_t hdr, inout local_metadata_t meta, inout stand
             hdr.report_ipv4.dscp = 0;
             hdr.report_ipv4.ecn = 0;
 
-            // 2x ipv4 header (20*2) + udp header (8) + eth header (14) + report header (16) + int data len
-            hdr.report_ipv4.total_len = (bit<16>)(20 + 20 + 8 + 14)
+            // ipv4 header (20) + udp header (8) + report header (16) + eth header (14) + modal header + int data len
+            hdr.report_ipv4.total_len = (bit<16>)(20 + 8 + 14)
                 + ((bit<16>)(INT_REPORT_HEADER_LEN_WORDS)<<2)
                 + (((bit<16>)hdr.int_shim.len) << 2);
+            
+            // modal header len
+            if (hdr.ipv4.isValid()) {
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 20;
+            }
+            if (hdr.id.isValid()) {
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 9;
+            }
+            if (hdr.mf.isValid()) {
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 13;
+            }
+            if (hdr.geo.isValid()) {
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 57;
+            }
+            if (hdr.ndn.ndn_prefix.isValid()) {
+                hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 37;
+            }
+            // if (hdr.flexip.isValid()) {
+            //     hdr.report_ipv4.total_len = hdr.report_ipv4.total_len + 20
+            // }
                 
             // add size of original tcp/udp header
             if (hdr.tcp.isValid()) {
