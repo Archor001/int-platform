@@ -206,9 +206,9 @@ def data_save(platform, data):
 
 # 主函数
 if __name__ == "__main__":
-    # 生成 10000 条数据，异常概率为 0.1%
-    num_samples = 1000
-    anomaly_prob = 0.003  # 降低微突发流量的触发概率
+    # 生成 10000 条数据，异常概率为 0.05%
+    num_samples = 100000
+    anomaly_prob = 0.0005  # 降低微突发流量的触发概率
 
 
     bmv2_data = generate_network_data(num_samples, anomaly_prob, BMV2_PLATFORMS)
