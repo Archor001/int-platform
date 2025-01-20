@@ -16,6 +16,9 @@ MODAL_TYPES = {
 # 定义跳数
 NUM_HOPS = 4  # 直线拓扑中的跳数
 
+# 平台架构
+BMV2_PLATFORMS = "bmv2"
+TOFINO_PLATFORMS = "tofino"
 
 def fast_approaching(x, k=5):
     """
@@ -31,20 +34,38 @@ def fast_approaching(x, k=5):
     return (1 - np.exp(-k * x)) / (1 - np.exp(-k))
 
 # 定义生成数据的函数
-def generate_network_data(num_samples, anomaly_prob=0.01):
+def generate_network_data(num_samples, anomaly_prob=0.01, platform=BMV2_PLATFORMS):
     data = []
     is_burst = False  # 是否处于微突发流量状态
     burst_start = 0  # 微突发流量的起始位置
     burst_end = 0  # 微突发流量的结束位置
     burst_duration = 0  # 微突发流量的持续时间
     burst_peak = 0  # 指标达到峰值的时刻
-    burst_magnification = random.uniform(5, 13)  # 突发流量的放大倍数
-    base_iat = 100  # 正常情况下的 IAT 基础值（微秒）
-    min_iat = 20    # 突发期间 IAT 的最小值（微秒）
-    base_e2e_latency = 1.0  # 固定基准值（毫秒）
-    base_hop_latency = 1  # 每跳时延的固定基准值（毫秒）
-    base_link_latency = 0.1  # 链路时延固定基准值（毫秒）
-    base_queue_occupancy = 0  # 队列深度的固定基准值
+    burst_magnification = random.uniform(8, 10)  # 突发流量的放大倍数
+
+    # 根据平台设置基准值和动态范围
+    if platform == TOFINO_PLATFORMS:
+        base_iat = 400  # 400 ns，单位：微秒
+        min_iat = 80  # 100 ns，单位：微秒
+        base_hop_latency = 1.6  # 2 微秒
+        base_link_latency = 0.16  # 1 微秒
+        base_queue_occupancy = 0  # 队列深度的固定基准值
+        dynamic_hop_latency_range = (-0.1, 0.3)  # base_hop_latency 的 -10% 到 +30%
+        dynamic_link_latency_range = (-0.1, 0.3)  # base_link_latency 的 -10% 到 +30%
+        dynamic_queue_occupancy_range = (80, 300)  # 100~400 KB
+        queue_occupancy_delta = (60.0, 200.0)
+        base_hop_jitter_range = (0.01, 0.1)  # base_hop_latency 的 1% 到 10%
+    else:  # 默认 BMV2_PLATFORMS
+        base_iat = 100  # 100 微秒
+        min_iat = 20  # 20 微秒
+        base_hop_latency = 0.8  # 1 毫秒
+        base_link_latency = 0.08  # 0.1 毫秒
+        base_queue_occupancy = 0  # 队列深度的固定基准值
+        dynamic_hop_latency_range = (-0.1, 0.3)  # base_hop_latency 的 -10% 到 +30%
+        dynamic_link_latency_range = (-0.1, 0.3)  # base_link_latency 的 -10% 到 +30%
+        dynamic_queue_occupancy_range = (0, 4)  # 0 ~ 4
+        queue_occupancy_delta = (3.0, 4.0)
+        base_hop_jitter_range = (0.01, 0.1)  # base_hop_latency 的 1% 到 10%
 
     for i in range(num_samples):  # 使用 i 作为原始序号
         # 随机选择模态类型
@@ -52,10 +73,10 @@ def generate_network_data(num_samples, anomaly_prob=0.01):
         factor = MODAL_TYPES[modal_type]
 
         # 随机生成动态变化值
-        dynamic_hop_latency = random.uniform(-0.1, 0.3)  # 每跳时延的动态变化值（毫秒）
-        dynamic_link_latency = random.uniform(-0.01, 0.03)  # 每段链路的时延（毫秒）
-        dynamic_queue_occupancy = random.uniform(0, 4)  # 队列深度的动态变化值
-        base_hop_jitter = random.uniform(0.01, 0.1)  # 每跳的时延抖动（毫秒）
+        dynamic_hop_latency = random.uniform(*dynamic_hop_latency_range) * base_hop_latency
+        dynamic_link_latency = random.uniform(*dynamic_link_latency_range) * base_link_latency
+        dynamic_queue_occupancy = random.uniform(*dynamic_queue_occupancy_range)
+        base_hop_jitter = random.uniform(*base_hop_jitter_range) * base_hop_latency
         is_anomaly = 0  # 是否异常
 
         # 计算每跳时延、链路时延和队列深度（不乘以 factor）
@@ -83,16 +104,16 @@ def generate_network_data(num_samples, anomaly_prob=0.01):
             progress = (i - burst_start) / burst_duration  # 微突发流量的进度（0 到 1）
             if progress < burst_peak:  # 前 80% 的时间对数增长
                 # 使用对数函数计算增长因子
-                vary_factor = fast_approaching(progress, 3)
+                vary_factor = fast_approaching(progress, 4)
                 hop_latency *= (1 + vary_factor * burst_magnification)  # 时延对数增长
                 link_latency *= (1 + vary_factor * burst_magnification)
-                queue_occupancy += random.randint(3,4)
+                queue_occupancy += random.uniform(*queue_occupancy_delta)
                 queue_occupancy *= (1 + vary_factor * burst_magnification)  # 队列深度对数增长
             else:
                 # 后 20% 的时间在最值附近波动
                 hop_latency *= (1 + burst_magnification * burst_peak) * random.uniform(0.95, 1.05)
                 link_latency *= (1 + 1 * burst_peak) * random.uniform(0.95, 1.05)
-                queue_occupancy += random.randint(3, 4)
+                queue_occupancy += random.uniform(*queue_occupancy_delta)
                 queue_occupancy *= (1 + burst_magnification * burst_peak) * random.uniform(0.95, 1.05)
 
             # 计算端到端时延（e2e_latency）
@@ -100,7 +121,7 @@ def generate_network_data(num_samples, anomaly_prob=0.01):
 
             # IAT在前20%快速下降，然后趋于稳定
             if progress < 0.1:
-                vary_factor = fast_approaching(progress*10, 4)
+                vary_factor = fast_approaching(progress * 10, 5)
                 iat = iat - iat * vary_factor * 0.8
             else:
                 iat = min_iat * random.uniform(0.9, 1.1)
@@ -126,9 +147,9 @@ def generate_network_data(num_samples, anomaly_prob=0.01):
         data.append([
             i,  # 原始序号
             modal_type,
-            hop_latency,  # 每跳的时延（毫秒）
-            e2e_latency,  # 端到端时延（毫秒）
-            queue_occupancy,  # 队列深度
+            hop_latency,  # 每跳的时延（微秒或毫秒）
+            e2e_latency,  # 端到端时延（微秒或毫秒）
+            queue_occupancy,  # 队列深度（Bytes）
             iat,  # 数据包到达间隔（微秒）
             hop_jitter * 1000,  # 每跳的时延抖动（微秒）
             e2e_jitter * 1000,  # 端到端时延抖动（微秒）
@@ -139,40 +160,59 @@ def generate_network_data(num_samples, anomaly_prob=0.01):
 
 
 # 定义保存数据到 CSV 文件的函数
-def save_to_csv(data, filename):
+def save_to_csv(data, filename, platform):
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         # 写入表头
-        writer.writerow([
-            "Packet ID",  # 原始序号
-            "Modal Type",
-            "Hop Latency (ms)",
-            "e2e Delay (ms)",
-            "Queue Occupancy",
-            "IAT (us)",
-            "Hop Jitter (us)",
-            "e2e Jitter (us)",
-            "Is Anomaly"
-        ])
+        if platform == BMV2_PLATFORMS:
+            writer.writerow([
+                "Packet ID",  # 原始序号
+                "Modal Type",
+                "Hop Latency (ms)",
+                "e2e Delay (ms)",
+                "Queue Occupancy",
+                "IAT (us)",
+                "Hop Jitter (us)",
+                "e2e Jitter (us)",
+                "Is Anomaly"
+            ])
+        else:
+            writer.writerow([
+                "Packet ID",  # 原始序号
+                "Modal Type",
+                "Hop Latency (us)",
+                "e2e Delay (us)",
+                "Queue Occupancy (kb)",
+                "IAT (ns)",
+                "Hop Jitter (ns)",
+                "e2e Jitter (ns)",
+                "Is Anomaly"
+            ])
         # 写入数据
         writer.writerows(data)
 
 
-# 主函数
-if __name__ == "__main__":
-    # 生成 10000 条数据，异常概率为 0.1%
-    num_samples = 1000
-    anomaly_prob = 0.005  # 降低微突发流量的触发概率
-    data = generate_network_data(num_samples, anomaly_prob)
-
-    # 保存完整数据集到 CSV 文件
-    filename = "int_data_anomaly_bmv2_all.csv"
-    save_to_csv(data, filename)
+def data_save(platform, data):
+    filename = f"int_data_anomaly_{platform}_all.csv"
+    save_to_csv(data, filename, platform)
     print(f"Generated {num_samples} samples with {anomaly_prob * 100}% anomaly probability and saved to {filename}.")
 
     # 按模态类型将数据分组并保存到单独的 CSV 文件
     for modal_type in MODAL_TYPES.keys():
         modal_data = [row for row in data if row[1] == modal_type]  # 注意：模态类型现在是第 2 列
-        modal_filename = f"int_data_anomaly_bmv2_{modal_type}.csv"
-        save_to_csv(modal_data, modal_filename)
+        modal_filename = f"int_data_anomaly_{platform}_{modal_type}.csv"
+        save_to_csv(modal_data, modal_filename, platform)
         print(f"Saved {len(modal_data)} samples of {modal_type} to {modal_filename}.")
+
+# 主函数
+if __name__ == "__main__":
+    # 生成 10000 条数据，异常概率为 0.1%
+    num_samples = 1000
+    anomaly_prob = 0.003  # 降低微突发流量的触发概率
+
+
+    bmv2_data = generate_network_data(num_samples, anomaly_prob, BMV2_PLATFORMS)
+    data_save(BMV2_PLATFORMS, bmv2_data)
+
+    tofino_data = generate_network_data(num_samples, anomaly_prob, TOFINO_PLATFORMS)
+    data_save(TOFINO_PLATFORMS, tofino_data)
