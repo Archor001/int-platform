@@ -38,6 +38,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\experiment\int-dataset\int_data_tofino_all.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\experiment\int_data_anomaly_bmv2_FlexIP.csv">
           <value>
             <Attribute>

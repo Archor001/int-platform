@@ -49,22 +49,22 @@ def generate_network_data(num_samples, anomaly_prob=0.01, platform=BMV2_PLATFORM
         min_iat = 80  # 100 ns，单位：微秒
         base_hop_latency = 1.6  # 2 微秒
         base_link_latency = 0.16  # 1 微秒
-        base_queue_occupancy = 100  # 队列深度的固定基准值
+        base_queue_occupancy = 80  # 队列深度的固定基准值
         dynamic_hop_latency_range = (-0.1, 0.3)  # base_hop_latency 的 -10% 到 +30%
         dynamic_link_latency_range = (-0.1, 0.3)  # base_link_latency 的 -10% 到 +30%
         dynamic_queue_occupancy_range = (-0.1, 0.3)  # 100~400 KB
-        queue_occupancy_delta = (60.0, 200.0)
+        queue_occupancy_delta = (40.0, 150.0)
         base_hop_jitter_range = (0.01, 0.1)  # base_hop_latency 的 1% 到 10%
     else:  # 默认 BMV2_PLATFORMS
         base_iat = 100  # 100 微秒
         min_iat = 20  # 20 微秒
         base_hop_latency = 0.8  # 1 毫秒
         base_link_latency = 0.08  # 0.1 毫秒
-        base_queue_occupancy = 0.5  # 队列深度的固定基准值
+        base_queue_occupancy = 1  # 队列深度的固定基准值
         dynamic_hop_latency_range = (-0.1, 0.3)  # base_hop_latency 的 -10% 到 +30%
         dynamic_link_latency_range = (-0.1, 0.3)  # base_link_latency 的 -10% 到 +30%
         dynamic_queue_occupancy_range = (-0.1, 0.3)  # 0 ~ 4
-        queue_occupancy_delta = (1.5, 1.8)
+        queue_occupancy_delta = (0.3, 0.4)
         base_hop_jitter_range = (0.01, 0.1)  # base_hop_latency 的 1% 到 10%
 
     for i in range(num_samples):  # 使用 i 作为原始序号
@@ -138,7 +138,7 @@ def generate_network_data(num_samples, anomaly_prob=0.01, platform=BMV2_PLATFORM
         # 在最后统一乘以模态类型的比例因子
         hop_latency *= factor
         link_latency *= factor
-        queue_occupancy *= (factor - 1) * 0.3 + 1
+        queue_occupancy *= factor
         hop_jitter *= factor
         e2e_jitter *= factor
         e2e_latency *= factor
@@ -214,7 +214,7 @@ def data_save(platform, data):
 # 主函数
 if __name__ == "__main__":
     # 生成 10000 条数据，异常概率为 0.05%
-    num_samples = 100000
+    num_samples = 1000
     anomaly_prob = 0.0005  # 降低微突发流量的触发概率
 
     # 生成 BMV2 平台数据
