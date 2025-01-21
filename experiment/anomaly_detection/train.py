@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import precision_score, recall_score, f1_score
 from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout, SimpleRNN, GlobalAveragePooling1D, MultiHeadAttention, LayerNormalization
 from tensorflow.keras.optimizers import Adam
@@ -102,44 +103,67 @@ def train_model(model, X_train, y_train, X_test, y_test, epochs=20, batch_size=6
     )
     return history
 
-# 绘制所有模型的训练结果图表
-def plot_all_training_results(histories):
-    plt.figure(figsize=(14, 10))
+# 评估模型并保存结果
+def evaluate_and_save_results(model, X_test, y_test, original_X_test, model_type):
+    # 评估模型
+    loss, accuracy = model.evaluate(X_test, y_test, verbose=0)
+    print(f'{model_type} 测试准确率: {accuracy:.4f}')
 
-    # 绘制损失曲线
-    plt.subplot(2, 2, 1)
-    for model_type, history in histories.items():
-        plt.plot(history.history['loss'], label=f'{model_type} Train Loss')
-    plt.title('Training Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
+    # 预测测试集
+    y_pred = model.predict(X_test)
+    y_pred_labels = (y_pred > 0.5).astype(int).flatten()  # 将概率转换为二分类标签
+    y_true_labels = y_test
+
+    # 计算精确率、召回率和F1分数
+    precision = precision_score(y_true_labels, y_pred_labels)
+    recall = recall_score(y_true_labels, y_pred_labels)
+    f1 = f1_score(y_true_labels, y_pred_labels)
+
+    print(f'{model_type} 测试精确率: {precision:.4f}')
+    print(f'{model_type} 测试召回率: {recall:.4f}')
+    print(f'{model_type} 测试F1分数: {f1:.4f}')
+
+    # 保存结果到 CSV 文件
+    results = pd.DataFrame({
+        'Hop Latency (ms)': original_X_test[:, -1, 0],  # 原始特征数据
+        'e2e Delay (ms)': original_X_test[:, -1, 1],
+        'Queue Occupancy': original_X_test[:, -1, 2],
+        'IAT (us)': original_X_test[:, -1, 3],
+        'Hop Jitter (us)': original_X_test[:, -1, 4],
+        'e2e Jitter (us)': original_X_test[:, -1, 5],
+        'True Anomaly': y_true_labels,
+        'Predicted Anomaly': y_pred_labels
+    })
+    output_file = f'{model_type.lower()}_anomaly_results.csv'
+    results.to_csv(output_file, index=False)
+    print(f"结果已保存到 {output_file}")
+
+    # 返回评估指标
+    return accuracy, precision, recall, f1
+
+# 绘制对比实验结果图
+def plot_metrics_comparison(metrics_dict):
+    """
+    绘制四种模型的精确率、召回率和F1分数对比图。
+    """
+    models = list(metrics_dict.keys())
+    precision = [metrics_dict[model]['precision'] for model in models]
+    recall = [metrics_dict[model]['recall'] for model in models]
+    f1 = [metrics_dict[model]['f1'] for model in models]
+
+    x = np.arange(len(models))  # 模型标签位置
+    width = 0.2  # 柱状图宽度
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(x - width, precision, width, label='Precision')
+    plt.bar(x, recall, width, label='Recall')
+    plt.bar(x + width, f1, width, label='F1 Score')
+
+    plt.xlabel('Model')
+    plt.ylabel('Score')
+    plt.title('Comparison of Precision, Recall, and F1 Score for Four Models')
+    plt.xticks(x, models)
     plt.legend()
-
-    plt.subplot(2, 2, 2)
-    for model_type, history in histories.items():
-        plt.plot(history.history['val_loss'], label=f'{model_type} Val Loss')
-    plt.title('Validation Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend()
-
-    # 绘制准确率曲线
-    plt.subplot(2, 2, 3)
-    for model_type, history in histories.items():
-        plt.plot(history.history['accuracy'], label=f'{model_type} Train Accuracy')
-    plt.title('Training Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend()
-
-    plt.subplot(2, 2, 4)
-    for model_type, history in histories.items():
-        plt.plot(history.history['val_accuracy'], label=f'{model_type} Val Accuracy')
-    plt.title('Validation Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend()
-
     plt.tight_layout()
     plt.show()
 
@@ -154,8 +178,8 @@ def main():
     # 定义模型类型列表
     model_types = ['LSTM', 'RNN', 'TCN', 'Transformer']
 
-    # 记录每种模型的训练历史
-    histories = {}
+    # 记录每种模型的评估指标
+    metrics_dict = {}
 
     # 遍历所有模型类型
     for model_type in model_types:
@@ -165,25 +189,35 @@ def main():
         input_shape = (X_train.shape[1], X_train.shape[2])  # [timesteps, features]
         if model_type == 'LSTM':
             model = build_lstm_model(input_shape)
-        elif model_type == 'RNN':
+        elif model_type == 'Transformer':
             model = build_rnn_model(input_shape)
         elif model_type == 'TCN':
             model = build_tcn_model(input_shape)
-        elif model_type == 'Transformer':
+        elif model_type == 'RNN':
             model = build_transformer_model(input_shape)
 
         # 训练模型
         history = train_model(model, X_train, y_anomaly_train, X_test, y_anomaly_test)
 
-        # 记录训练历史
-        histories[model_type] = history
+        # 评估模型并保存结果
+        accuracy, precision, recall, f1 = evaluate_and_save_results(
+            model, X_test, y_anomaly_test, original_X_test, model_type
+        )
+
+        # 记录评估指标
+        metrics_dict[model_type] = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1
+        }
 
         # 保存模型
         model.save(f'{model_type.lower()}_anomaly_model.h5')
         print(f"{model_type} model saved as {model_type.lower()}_anomaly_model.h5")
 
-    # 绘制所有模型的训练结果图表
-    plot_all_training_results(histories)
+    # 绘制对比实验结果图
+    plot_metrics_comparison(metrics_dict)
 
 # 运行主函数
 if __name__ == "__main__":

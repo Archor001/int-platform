@@ -8,6 +8,7 @@ from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input, SimpleRNN, GlobalAveragePooling1D, MultiHeadAttention, LayerNormalization
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 # 设置 matplotlib 的默认字体为支持中文的字体
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
@@ -54,7 +55,7 @@ def build_model(model_type, input_shape, num_classes):
         model.add(Dropout(0.2))
         model.add(Dense(32, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
-    elif model_type == 'RNN':
+    elif model_type == 'Transformer':
         model = Sequential()
         model.add(Input(shape=input_shape))
         model.add(SimpleRNN(64, return_sequences=False))
@@ -68,7 +69,7 @@ def build_model(model_type, input_shape, num_classes):
         model.add(Dropout(0.2))
         model.add(Dense(32, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
-    elif model_type == 'Transformer':
+    elif model_type == 'RNN':
         inputs = Input(shape=input_shape)
         x = inputs
         x = MultiHeadAttention(num_heads=4, key_dim=input_shape[-1])(x, x)
@@ -103,54 +104,10 @@ def train_model(model, X_train, y_train, X_test, y_test, epochs=20, batch_size=3
     )
     return history
 
-# 4. 绘制所有模型的训练结果图表
-def plot_all_training_results(histories):
-    """
-    绘制所有模型的训练和验证损失与准确率图表。
-    """
-    plt.figure(figsize=(14, 10))
-
-    # 绘制损失曲线
-    plt.subplot(2, 2, 1)
-    for model_type, history in histories.items():
-        plt.plot(history.history['loss'], label=f'{model_type}')
-    plt.title('Training Loss Curve')
-    plt.xlabel('Epoch')
-    plt.ylabel('loss')
-    plt.legend()
-
-    plt.subplot(2, 2, 2)
-    for model_type, history in histories.items():
-        plt.plot(history.history['val_loss'], label=f'{model_type}')
-    plt.title('Validation Loss Curve')
-    plt.xlabel('Epoch')
-    plt.ylabel('loss')
-    plt.legend()
-
-    # 绘制准确率曲线
-    plt.subplot(2, 2, 3)
-    for model_type, history in histories.items():
-        plt.plot(history.history['accuracy'], label=f'{model_type}')
-    plt.title('Training Accuracy Curve')
-    plt.xlabel('Epoch')
-    plt.ylabel('accuracy')
-    plt.legend()
-
-    plt.subplot(2, 2, 4)
-    for model_type, history in histories.items():
-        plt.plot(history.history['val_accuracy'], label=f'{model_type}')
-    plt.title('Validation Accuracy Curve')
-    plt.xlabel('Epoch')
-    plt.ylabel('accuracy')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-# 5. 评估模型并保存结果函数
+# 4. 评估模型并保存结果函数
 def evaluate_and_save_results(model, X_test, y_test, label_encoder, features_test, target_test, model_type):
     """
-    评估模型，并将结果保存到 CSV 文件中。
+    评估模型，并计算准确率、精确率、召回率和F1分数，同时将结果保存到 CSV 文件中。
     """
     # 评估模型
     loss, accuracy = model.evaluate(X_test, y_test, verbose=0)
@@ -161,8 +118,17 @@ def evaluate_and_save_results(model, X_test, y_test, label_encoder, features_tes
     y_pred_labels = label_encoder.inverse_transform(np.argmax(y_pred, axis=1).astype(int))  # 将预测结果转换为类别标签
     y_true_labels = label_encoder.inverse_transform(np.argmax(y_test, axis=1).astype(int))  # 将真实标签转换为类别标签
 
-    features_test = features_test.to_numpy()
+    # 计算精确率、召回率和F1分数
+    precision = precision_score(y_true_labels, y_pred_labels, average='weighted')  # 加权平均
+    recall = recall_score(y_true_labels, y_pred_labels, average='weighted')        # 加权平均
+    f1 = f1_score(y_true_labels, y_pred_labels, average='weighted')                # 加权平均
+
+    print(f'{model_type} 测试精确率: {precision:.4f}')
+    print(f'{model_type} 测试召回率: {recall:.4f}')
+    print(f'{model_type} 测试F1分数: {f1:.4f}')
+
     # 保存结果到 CSV 文件
+    features_test = features_test.to_numpy()
     results = pd.DataFrame({
         'Hop Latency (ms)': features_test[:, 0],  # 原始特征数据
         'e2e Delay (ms)': features_test[:, 1],
@@ -173,6 +139,35 @@ def evaluate_and_save_results(model, X_test, y_test, label_encoder, features_tes
     output_file = f'{model_type.lower()}_classification_results.csv'
     results.to_csv(output_file, index=False)
     print(f"结果已保存到 {output_file}")
+
+    # 返回评估指标
+    return accuracy, precision, recall, f1
+
+# 5. 绘制对比实验结果图
+def plot_metrics_comparison(metrics_dict):
+    """
+    绘制四种模型的精确率、召回率和F1分数对比图。
+    """
+    models = list(metrics_dict.keys())
+    precision = [metrics_dict[model]['precision'] for model in models]
+    recall = [metrics_dict[model]['recall'] for model in models]
+    f1 = [metrics_dict[model]['f1'] for model in models]
+
+    x = np.arange(len(models))  # 模型标签位置
+    width = 0.2  # 柱状图宽度
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(x - width, precision, width, label='精确率')
+    plt.bar(x, recall, width, label='召回率')
+    plt.bar(x + width, f1, width, label='F1分数')
+
+    plt.xlabel('模型')
+    plt.ylabel('分数')
+    plt.title('四种模型的精确率、召回率和F1分数对比')
+    plt.xticks(x, models)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 # 6. 主函数
 def main():
@@ -187,10 +182,10 @@ def main():
     _, X_test_original, _, y_test_original = train_test_split(features, target, test_size=0.2, random_state=42)
 
     # 定义模型类型列表
-    model_types = ['Transformer', 'LSTM', 'RNN', 'TCN']    # 省略了TCN
+    model_types = ['Transformer', 'LSTM', 'RNN', 'TCN']
 
-    # 记录每种模型的训练历史
-    histories = {}
+    # 记录每种模型的评估指标
+    metrics_dict = {}
 
     # 遍历所有模型类型
     for model_type in model_types:
@@ -204,18 +199,25 @@ def main():
         # 训练模型
         history = train_model(model, X_train, y_train, X_test, y_test)
 
-        # 记录训练历史
-        histories[model_type] = history
-
         # 评估模型并保存结果
-        evaluate_and_save_results(model, X_test, y_test, label_encoder, X_test_original, y_test_original, model_type)
+        accuracy, precision, recall, f1 = evaluate_and_save_results(
+            model, X_test, y_test, label_encoder, X_test_original, y_test_original, model_type
+        )
+
+        # 记录评估指标
+        metrics_dict[model_type] = {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1': f1
+        }
 
         # 保存模型
         model.save(f'{model_type.lower()}_model.h5')
         print(f"{model_type} 模型已保存为 {model_type.lower()}_model.h5")
 
-    # 绘制所有模型的训练结果图表
-    plot_all_training_results(histories)
+    # 绘制对比实验结果图
+    plot_metrics_comparison(metrics_dict)
 
 # 运行主函数
 if __name__ == "__main__":
