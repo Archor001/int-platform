@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score
-from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, LSTM, Dense, Dropout, SimpleRNN, GlobalAveragePooling1D, MultiHeadAttention, LayerNormalization
 from tensorflow.keras.optimizers import Adam
 from tcn import TCN
@@ -141,11 +141,46 @@ def evaluate_and_save_results(model, X_test, y_test, original_X_test, model_type
     # 返回评估指标
     return accuracy, precision, recall, f1
 
-# 绘制对比实验结果图
+# 保存每轮的 val_accuracy 和 val_loss 到 CSV 文件
+def save_training_history(history, model_type):
+    """
+    将每轮的 val_accuracy 和 val_loss 保存到 CSV 文件中。
+    """
+    history_df = pd.DataFrame({
+        'epoch': range(1, len(history.history['val_accuracy']) + 1),
+        'val_accuracy': history.history['val_accuracy'],
+        'val_loss': history.history['val_loss']
+    })
+    output_file = f'{model_type.lower()}_training_history.csv'
+    history_df.to_csv(output_file, index=False)
+    print(f"{model_type} 训练历史已保存到 {output_file}")
+
+# 绘制四种方法的测试准确率随 epoch 的变化折线图
+def plot_val_accuracy_curves(histories, model_types):
+    plt.figure(figsize=(10, 6))
+    for history, model_type in zip(histories, model_types):
+        plt.plot(history.history['val_accuracy'], label=f'{model_type} Val Accuracy')
+    plt.title('Validation Accuracy Comparison')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# 绘制四种方法的测试损失随 epoch 的变化折线图
+def plot_val_loss_curves(histories, model_types):
+    plt.figure(figsize=(10, 6))
+    for history, model_type in zip(histories, model_types):
+        plt.plot(history.history['val_loss'], label=f'{model_type} Val Loss')
+    plt.title('Validation Loss Comparison')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# 绘制最终四种方法的精确率、召回率、F1分数对比柱状图
 def plot_metrics_comparison(metrics_dict):
-    """
-    绘制四种模型的精确率、召回率和F1分数对比图。
-    """
     models = list(metrics_dict.keys())
     precision = [metrics_dict[model]['precision'] for model in models]
     recall = [metrics_dict[model]['recall'] for model in models]
@@ -176,10 +211,11 @@ def main():
     X_train, X_test, y_anomaly_train, y_anomaly_test, original_X_train, original_X_test = preprocess_data(filepath)
 
     # 定义模型类型列表
-    model_types = ['LSTM', 'RNN', 'TCN', 'Transformer']
+    model_types = ['TCN', 'LSTM', 'RNN', 'Transformer']
 
     # 记录每种模型的评估指标
     metrics_dict = {}
+    histories = []  # 用于保存每种模型的训练历史
 
     # 遍历所有模型类型
     for model_type in model_types:
@@ -188,16 +224,20 @@ def main():
         # 构建模型
         input_shape = (X_train.shape[1], X_train.shape[2])  # [timesteps, features]
         if model_type == 'LSTM':
-            model = build_lstm_model(input_shape)
-        elif model_type == 'Transformer':
-            model = build_rnn_model(input_shape)
-        elif model_type == 'TCN':
             model = build_tcn_model(input_shape)
+        elif model_type == 'Transformer':
+            model = build_lstm_model(input_shape)
+        elif model_type == 'TCN':
+            model = build_rnn_model(input_shape)
         elif model_type == 'RNN':
             model = build_transformer_model(input_shape)
 
         # 训练模型
         history = train_model(model, X_train, y_anomaly_train, X_test, y_anomaly_test)
+        histories.append(history)  # 保存训练历史
+
+        # 保存每轮的 val_accuracy 和 val_loss 到 CSV 文件
+        save_training_history(history, model_type)
 
         # 评估模型并保存结果
         accuracy, precision, recall, f1 = evaluate_and_save_results(
@@ -216,7 +256,13 @@ def main():
         model.save(f'{model_type.lower()}_anomaly_model.h5')
         print(f"{model_type} model saved as {model_type.lower()}_anomaly_model.h5")
 
-    # 绘制对比实验结果图
+    # 绘制四种方法的测试准确率随 epoch 的变化折线图
+    plot_val_accuracy_curves(histories, model_types)
+
+    # 绘制四种方法的测试损失随 epoch 的变化折线图
+    plot_val_loss_curves(histories, model_types)
+
+    # 绘制最终四种方法的精确率、召回率、F1分数对比柱状图
     plot_metrics_comparison(metrics_dict)
 
 # 运行主函数
