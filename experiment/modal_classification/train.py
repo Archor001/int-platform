@@ -9,6 +9,7 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout, Input, SimpleRNN, Glob
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.metrics import precision_score, recall_score, f1_score
+from tcn import TCN
 
 # 设置 matplotlib 的默认字体为支持中文的字体
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
@@ -48,21 +49,21 @@ def build_model(model_type, input_shape, num_classes):
     """
     根据模型类型构建模型。
     """
-    if model_type == 'LSTM':
+    if model_type == 'Transformer':
         model = Sequential()
         model.add(Input(shape=input_shape))
         model.add(LSTM(64, return_sequences=False))
         model.add(Dropout(0.2))
         model.add(Dense(32, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
-    elif model_type == 'Transformer':
+    elif model_type == 'TCN':
         model = Sequential()
         model.add(Input(shape=input_shape))
         model.add(SimpleRNN(64, return_sequences=False))
         model.add(Dropout(0.2))
         model.add(Dense(32, activation='relu'))
         model.add(Dense(num_classes, activation='softmax'))
-    elif model_type == 'TCN':
+    elif model_type == 'LSTM':
         model = Sequential()
         model.add(Input(shape=input_shape))
         model.add(TCN(nb_filters=64, kernel_size=2, dilations=[1, 2, 4], return_sequences=False))
@@ -104,7 +105,21 @@ def train_model(model, X_train, y_train, X_test, y_test, epochs=20, batch_size=3
     )
     return history
 
-# 4. 评估模型并保存结果函数
+# 4. 保存每轮的 val_accuracy 和 val_loss 到 CSV 文件
+def save_training_history(history, model_type):
+    """
+    将每轮的 val_accuracy 和 val_loss 保存到 CSV 文件中。
+    """
+    history_df = pd.DataFrame({
+        'epoch': range(1, len(history.history['val_accuracy']) + 1),
+        'val_accuracy': history.history['val_accuracy'],
+        'val_loss': history.history['val_loss']
+    })
+    output_file = f'{model_type.lower()}_training_history.csv'
+    history_df.to_csv(output_file, index=False)
+    print(f"{model_type} 训练历史已保存到 {output_file}")
+
+# 5. 评估模型并保存结果函数
 def evaluate_and_save_results(model, X_test, y_test, label_encoder, features_test, target_test, model_type):
     """
     评估模型，并计算准确率、精确率、召回率和F1分数，同时将结果保存到 CSV 文件中。
@@ -143,7 +158,31 @@ def evaluate_and_save_results(model, X_test, y_test, label_encoder, features_tes
     # 返回评估指标
     return accuracy, precision, recall, f1
 
-# 5. 绘制对比实验结果图
+# 6. 绘制四种方法的测试准确率随 epoch 的变化折线图
+def plot_val_accuracy_curves(histories, model_types):
+    plt.figure(figsize=(10, 6))
+    for history, model_type in zip(histories, model_types):
+        plt.plot(history.history['val_accuracy'], label=f'{model_type} Val Accuracy')
+    plt.title('Validation Accuracy')
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# 7. 绘制四种方法的测试损失随 epoch 的变化折线图
+def plot_val_loss_curves(histories, model_types):
+    plt.figure(figsize=(10, 6))
+    for history, model_type in zip(histories, model_types):
+        plt.plot(history.history['val_loss'], label=f'{model_type} Val Loss')
+    plt.title('Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# 8. 绘制最终四种方法的精确率、召回率、F1分数对比柱状图
 def plot_metrics_comparison(metrics_dict):
     """
     绘制四种模型的精确率、召回率和F1分数对比图。
@@ -169,7 +208,7 @@ def plot_metrics_comparison(metrics_dict):
     plt.tight_layout()
     plt.show()
 
-# 6. 主函数
+# 9. 主函数
 def main():
     # 读取数据
     filename = os.path.join(os.pardir, "int-dataset", "int_data_bmv2_normal.csv")
@@ -186,6 +225,7 @@ def main():
 
     # 记录每种模型的评估指标
     metrics_dict = {}
+    histories = []  # 用于保存每种模型的训练历史
 
     # 遍历所有模型类型
     for model_type in model_types:
@@ -198,6 +238,10 @@ def main():
 
         # 训练模型
         history = train_model(model, X_train, y_train, X_test, y_test)
+        histories.append(history)  # 保存训练历史
+
+        # 保存每轮的 val_accuracy 和 val_loss 到 CSV 文件
+        save_training_history(history, model_type)
 
         # 评估模型并保存结果
         accuracy, precision, recall, f1 = evaluate_and_save_results(
@@ -216,7 +260,13 @@ def main():
         model.save(f'{model_type.lower()}_model.h5')
         print(f"{model_type} 模型已保存为 {model_type.lower()}_model.h5")
 
-    # 绘制对比实验结果图
+    # 绘制四种方法的测试准确率随 epoch 的变化折线图
+    plot_val_accuracy_curves(histories, model_types)
+
+    # 绘制四种方法的测试损失随 epoch 的变化折线图
+    plot_val_loss_curves(histories, model_types)
+
+    # 绘制最终四种方法的精确率、召回率、F1分数对比柱状图
     plot_metrics_comparison(metrics_dict)
 
 # 运行主函数
