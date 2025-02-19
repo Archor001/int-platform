@@ -15,7 +15,7 @@ modalities = {
 }
 
 # 定义带宽范围（从 10Mbps 到 1Gbps）
-bandwidths = np.linspace(10, 1000, 25)  # 单位：Mbps
+bandwidths = np.linspace(10, 1000, 50)  # 单位：Mbps
 
 # 定义每种模态的颜色
 colors = ['dodgerblue', 'brown', 'green', 'orange', 'purple', 'grey']

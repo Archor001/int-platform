@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# 分级消息队列优化版
+
 plt.rcParams["font.sans-serif"] = ['Microsoft YaHei']
 plt.rcParams["axes.unicode_minus"] = False
 
@@ -28,12 +30,12 @@ def generate_point_noise(x, ideal_y, noise_level):
 
 # 定义六条曲线
 curves = [
-    {"name": "容器内通信(拟合)", "points": [(0, 0), (160, 0), (1000, 120)], "type": "ideal"},
-    {"name": "跨容器通信(拟合)", "points": [(0, 0), (90, 0), (1000, 190)], "type": "ideal"},
-    {"name": "跨域通信(拟合)", "points": [(0, 0), (80, 0), (1000, 210)], "type": "ideal"},
-    {"name": "容器内通信", "points": [(0, 0), (95, 0), (1000, 120)], "type": "noisy"},
-    {"name": "跨容器通信", "points": [(0, 0), (80, 0), (1000, 190)], "type": "noisy"},
-    {"name": "跨域通信", "points": [(0, 0), (75, 0), (1000, 210)], "type": "noisy"}
+    {"name": "容器内通信(拟合)", "points": [(0, 0), (105, 0), (1000, 80)], "type": "ideal"},
+    {"name": "跨容器通信(拟合)", "points": [(0, 0), (95, 0), (1000, 130)], "type": "ideal"},
+    {"name": "跨域通信(拟合)", "points": [(0, 0), (85, 0), (1000, 150)], "type": "ideal"},
+    {"name": "容器内通信", "points": [(0, 0), (100, 0), (1000, 80)], "type": "noisy"},
+    {"name": "跨容器通信", "points": [(0, 0), (88, 0), (1000, 130)], "type": "noisy"},
+    {"name": "跨域通信", "points": [(0, 0), (80, 0), (1000, 150)], "type": "noisy"}
 ]
 
 colors = ['blue', 'green', 'red', 'blue', 'green', 'red']
@@ -46,7 +48,7 @@ x = np.linspace(0, 1000, 50)
 
 plt.figure(figsize=(12, 8))
 
-start_points_x = [90, 80, 75] # User provided start points x-coordinates for noisy curves
+start_points_x = [100, 88, 80] # User provided start points x-coordinates for noisy curves
 text_y_offsets = [-3, 20, -3] # Vertical offsets for text, now uniform, adjust as needed
 text_horizontal_alignments = ['left', 'center', 'right']
 text_vertical_alignments = ['top', 'bottom', 'top'] # Define vertical alignments for each text
@@ -85,7 +87,7 @@ for i in range(3): # For the three noisy curves
     plt.text(start_points_x[i], text_y_offsets[i], f'x={start_points_x[i]}', color=colors[i+3], fontsize=11, ha=text_horizontal_alignments[i], va=text_vertical_alignments[i]) # Text label with staggered vertical alignment
 
 # 添加标题和标签
-plt.title('不同通信场景的消息队列时延与带宽关系', fontsize=14)
+plt.title('分级消息队列时延与带宽关系', fontsize=16, pad=15)
 plt.xlabel('带宽 (Mbps)', fontsize=12)
 plt.ylabel('消息队列时延 (ms)', fontsize=12)
 plt.xlim(0, 1000)
