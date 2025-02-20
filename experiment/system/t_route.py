@@ -27,7 +27,7 @@ plt.plot(x, y_cross_container, label='跨容器通信', color='green', linestyle
 plt.plot(x, y_cross_domain, label='跨域通信', color='red', linestyle='-', marker='^', markersize=4)
 
 # 4. 添加图例、标签和标题
-plt.xlabel('带宽 (Mbps)')
+plt.xlabel('重放速率 (Mbps)')
 plt.ylabel('路由计算时延 (毫秒)')
 plt.title('路由计算时延折线图')
 plt.legend()

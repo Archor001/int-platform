@@ -87,8 +87,8 @@ for i in range(3): # For the three noisy curves
     plt.text(start_points_x[i], text_y_offsets[i], f'x={start_points_x[i]}', color=colors[i+3], fontsize=11, ha=text_horizontal_alignments[i], va=text_vertical_alignments[i]) # Text label with staggered vertical alignment
 
 # 添加标题和标签
-plt.title('分级消息队列时延与带宽关系', fontsize=16, pad=15)
-plt.xlabel('带宽 (Mbps)', fontsize=12)
+plt.title('分级消息队列时延折线图', fontsize=16, pad=15)
+plt.xlabel('重放速率(Mbps)', fontsize=12)
 plt.ylabel('消息队列时延 (ms)', fontsize=12)
 plt.xlim(0, 1000)
 plt.ylim(0, 250)

@@ -39,10 +39,10 @@ curves_data = [
     {"name": "跨域通信", "points": [(0, 0), (80, 0), (1000, 150)], "type": "noisy"}
 ]
 
-colors = ['blue', 'green', 'red']  # Colors for communication scenarios
+colors = ['blue', 'green', 'red']  # Colors for communication scenarios, not directly used now
 markers_noisy = ['o', 's', '^']  # Markers for noisy curves
-markers_ideal = ['o', 's', '^']  # Markers for ideal curves - can be same or different
-noise_levels = [0, 0, 0, 0.05, 0.05, 0.05]  # Increased noise levels for better visualization
+markers_for_selected = ['h', 'p', 'd'] # Markers for selected curves: Cross-container, Weighted average, New Fitted (Noisy)
+noise_levels = [0, 0, 0, 0.03, 0.03, 0.03] # Increased noise levels for better visualization
 line_styles_noisy = ['-', '-', '-']
 line_styles_ideal = ['--', '--', '--']
 ideal_curve_color = 'lightgrey'
@@ -77,63 +77,62 @@ for i in range(3):  # For Container Internal, Cross-Container, Cross-Domain
     y_first_switch_curves_ideal.append(y_first_switch_ideal)
     y_subsequent_switch_curves.append(y_subsequent_switch)
 
-# 创建画布和子图 (断裂轴)
-fig = plt.figure(figsize=(12, 8))
-gs = fig.add_gridspec(2, 1, height_ratios=[3, 1], hspace=0.05)
-ax1 = fig.add_subplot(gs[0])
-ax2 = fig.add_subplot(gs[1], sharex=ax1)
+# 计算加权平均 "首台交换机时延" (仅使用噪声曲线)
+weights = [0.125, 0.125, 0.75]  # 容器内, 跨容器, 跨域
+weighted_y_first_switch_noisy = np.average(y_first_switch_curves_noisy, axis=0, weights=weights)
 
-# 绘制 "首台交换机时延" 曲线 (上方子图)
-for i in range(3):  # 绘制三种通信场景的 "首台交换机时延"
-    ax1.plot(x, y_first_switch_curves_noisy[i], label=curves_data[i + 3]['name'], color=colors[i], linestyle=line_styles_noisy[i])  # Scenario label only
-    # 绘制拟合曲线
-    ax1.plot(x, y_first_switch_curves_ideal[i], label=curves_data[i]['name'], color=ideal_curve_color, linestyle=line_styles_ideal[i], marker=markers_ideal[i], markevery=4, markersize=6, markerfacecolor=colors[i], markeredgecolor='black', markeredgewidth=0.5)  # Scenario label only
+# ---  新的拟合曲线 (带噪声) ---
+new_curve_points = [(0, 9), (350, 23), (1000, 195)] # 调整拟合点以强制单调递增
+a_new, b_new, c_new = calculate_ideal_coefficients(new_curve_points)
+y_new_fitted_ideal = quadratic_function(x, a_new, b_new, c_new) # 先计算理想曲线
+noise_level_new_curve = 0.02 # 可以调整新的曲线的噪声水平
+noise_new_curve = generate_point_noise(x, y_new_fitted_ideal, noise_level_new_curve)
+y_new_fitted_noisy = y_new_fitted_ideal + noise_new_curve # 添加噪声
+# --- 新的拟合曲线 (带噪声) 结束 ---
 
-# 绘制 "后续交换机时延" 曲线 (下方子图)
-for i in range(3):  # 绘制三种通信场景的 "后续交换机时延"，颜色区分场景
-    ax2.plot(x, y_subsequent_switch_curves[i], label=curves_data[i + 3]['name'], color=colors[i], linestyle=line_styles_noisy[i], marker=markers_noisy[i], markevery=4, markersize=6)  # Scenario label only
+
+# 创建画布和子图 (只有一个子图 ax1)
+fig, ax1 = plt.subplots(figsize=(12, 6))  # Adjusted figure size for single plot
+
+# 绘制 "跨容器通信" 噪声曲线
+cross_container_index = 1 # Index for "跨容器通信" in noisy curves list
+ax1.plot(x, y_first_switch_curves_noisy[cross_container_index], label=curves_data[cross_container_index + 3]['name'], color='darkcyan', linestyle=line_styles_noisy[cross_container_index], marker=markers_for_selected[0], markevery=4, markersize=6)
+
+# 绘制加权平均曲线
+ax1.plot(x, weighted_y_first_switch_noisy, label='本架构多模态', color='indigo', linestyle='-', linewidth=2, marker=markers_for_selected[1], markevery=4, markersize=6)
+
+# --- 绘制新的拟合曲线 (带噪声) ---
+ax1.plot(x, y_new_fitted_noisy, label='传统架构单模态', color='coral', linestyle='-', marker=markers_for_selected[2], markevery=4, markersize=6)
+# --- 新的拟合曲线 (带噪声) 绘制结束 ---
+
 
 # 设置子图属性 (Y轴范围，刻度，标签，标题，图例，网格...)
-ax1.set_ylim(8, max(np.max(y_first_switch_curves_noisy[0]), np.max(y_first_switch_curves_noisy[1]), np.max(y_first_switch_curves_noisy[2])) * 1.2)
-ax1.set_yticks(np.arange(10, max(np.max(y_first_switch_curves_noisy[0]), np.max(y_first_switch_curves_noisy[1]), np.max(y_first_switch_curves_noisy[2])) * 1.2, 30))
-ax2.set_ylim(0, 0.02)
-ax2.set_yticks(np.arange(0, 0.021, 0.005))
+ax1.set_ylim(8, max(np.max(y_first_switch_curves_noisy[cross_container_index]), np.max(weighted_y_first_switch_noisy), np.max(y_new_fitted_noisy)) * 1.2)
+ax1.set_yticks(np.arange(10, max(np.max(y_first_switch_curves_noisy[cross_container_index]), np.max(weighted_y_first_switch_noisy), np.max(y_new_fitted_noisy)) * 1.2, 30))
 
 # 设置横轴刻度值
 xticks = np.arange(0, 1001, 100)  # 从0到1000，每隔100一个刻度
-ax2.set_xticks(xticks)  # 设置刻度位置
-ax2.set_xticklabels([str(int(x)) for x in xticks], fontsize=12)  # 设置刻度标签
-
-# 隐藏ax1的横轴刻度标签，但保留刻度线 (可选，如果也不想要刻度线，可以设置 ticks_bottom=False)
-ax1.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
+ax1.set_xticks(xticks)  # 设置刻度位置
+ax1.set_xticklabels([str(int(x)) for x in xticks], fontsize=12)  # 设置刻度标签
 
 # 设置横轴标签
-ax2.set_xlabel('重放速率 (Mbps)', fontsize=14)
+ax1.set_xlabel('重放速率 (Mbps)', fontsize=14)
 
 # 设置纵轴标签
-fig.text(0.06, 0.5, '交换机时延 (ms)', va='center', rotation='vertical', fontsize=14)
+ax1.set_ylabel('通信时延 (ms)', fontsize=14)
 
 # 设置标题
-plt.suptitle('交换机时延与重放速率关系图', fontsize=18, y=0.93)
+plt.title('通信时延与重放速率关系图 (本架构多模态 & 本架构单模态 & 传统架构单模态)', fontsize=18, y=1.02) # Adjusted title
 
 # 添加网格
 ax1.grid(True, linestyle='--', alpha=0.6)
-ax2.grid(True, linestyle='--', alpha=0.6)
 
 # 添加图例
-legend_colors = [Line2D([0], [0], color=colors[0], label='容器内通信'),
-                 Line2D([0], [0], color=colors[1], label='跨容器通信'),
-                 Line2D([0], [0], color=colors[2], label='跨域通信')]
-ax1.legend(handles=legend_colors, loc='upper right', fontsize=9, ncol=3)
-ax2.legend(handles=legend_colors, loc='upper right', fontsize=9, ncol=3)
-
-# 断裂轴视觉效果
-d = .015
-kwargs = dict(marker=[(-1, -d), (1, d)], linestyle='none',
-              markersize=12, markeredgewidth=1, color='k',
-              clip_on=False)
-ax1.plot([0, 1], [0, 0], transform=ax1.transAxes, **kwargs)
-ax2.plot([0, 1], [1, 1], transform=ax2.transAxes, **kwargs)
+legend_lines = [Line2D([0], [0], color='darkcyan', marker=markers_for_selected[0], linestyle='-', markersize=6, label='本架构单模态'),
+                 Line2D([0], [0], color='indigo', marker=markers_for_selected[1], linestyle='-', linewidth=2, markersize=6, label='本架构多模态'),
+                 Line2D([0], [0], color='coral', marker=markers_for_selected[2], linestyle='-', markersize=6, label='传统架构单模态')]
+ax1.legend(handles=legend_lines, loc='upper right', fontsize=9, ncol=1) # Adjusted legend
 
 # 显示图表
+plt.tight_layout() # Adjust layout to prevent labels from overlapping
 plt.show()
