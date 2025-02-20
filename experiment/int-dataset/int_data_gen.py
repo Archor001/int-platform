@@ -214,7 +214,7 @@ def data_save(platform, data):
 # 主函数
 if __name__ == "__main__":
     # 生成 1000000 条数据，异常概率为 0.05%
-    num_samples = 1000000
+    num_samples = 500
     anomaly_prob = 0.0005  # 降低微突发流量的触发概率
 
     # 生成 BMV2 平台数据
