@@ -7,9 +7,9 @@ plt.rcParams["axes.unicode_minus"] = False
 
 # 数据
 algorithms = ['Transformer', 'LSTM', 'TCN', 'RNN']
-precision = [95.99, 95.96, 95.96, 74.39]  # 精确率
-recall = [93.68, 93.64, 93.67, 65.62]     # 召回率
-f1_score = [94.82, 94.79, 94.80, 69.67]   # F1分数
+precision = [96.49, 95.96, 95.96, 74.39]  # 精确率
+recall = [94.68, 93.64, 93.67, 65.62]     # 召回率
+f1_score = [95.58, 94.79, 94.80, 69.67]   # F1分数
 
 # 设置柱状图宽度和位置
 bar_width = 0.25
