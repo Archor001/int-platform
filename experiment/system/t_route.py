@@ -22,8 +22,8 @@ y_cross_domain = 12 + np.random.normal(0, 1.0, len(x))   # 平均值 12ms，标�
 # 3. 绘制折线图
 plt.figure(figsize=(10, 6))  # 设置图像大小 (可选)
 
-plt.plot(x, y_container_internal, label='容器内通信', color='blue', linestyle='-', marker='o', markersize=4)
-plt.plot(x, y_cross_container, label='跨容器通信', color='green', linestyle='-', marker='s', markersize=4)
+plt.plot(x, y_container_internal, label='域内通信', color='blue', linestyle='-', marker='o', markersize=4)
+plt.plot(x, y_cross_container, label='域间通信', color='green', linestyle='-', marker='s', markersize=4)
 plt.plot(x, y_cross_domain, label='跨域通信', color='red', linestyle='-', marker='^', markersize=4)
 
 # 4. 添加图例、标签和标题

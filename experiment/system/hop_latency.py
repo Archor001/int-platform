@@ -31,11 +31,11 @@ def generate_point_noise(x, ideal_y, noise_level):
 
 # 定义六条曲线
 curves_data = [
-    {"name": "容器内通信(拟合)", "points": [(0, 0), (105, 0), (1000, 80)], "type": "ideal"},
-    {"name": "跨容器通信(拟合)", "points": [(0, 0), (95, 0), (1000, 130)], "type": "ideal"},
+    {"name": "域内通信(拟合)", "points": [(0, 0), (105, 0), (1000, 80)], "type": "ideal"},
+    {"name": "域间通信(拟合)", "points": [(0, 0), (95, 0), (1000, 130)], "type": "ideal"},
     {"name": "跨域通信(拟合)", "points": [(0, 0), (85, 0), (1000, 150)], "type": "ideal"},
-    {"name": "容器内通信", "points": [(0, 0), (100, 0), (1000, 80)], "type": "noisy"},
-    {"name": "跨容器通信", "points": [(0, 0), (88, 0), (1000, 130)], "type": "noisy"},
+    {"name": "域内通信", "points": [(0, 0), (100, 0), (1000, 80)], "type": "noisy"},
+    {"name": "域间通信", "points": [(0, 0), (88, 0), (1000, 130)], "type": "noisy"},
     {"name": "跨域通信", "points": [(0, 0), (80, 0), (1000, 150)], "type": "noisy"}
 ]
 
